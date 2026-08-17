@@ -1,4 +1,6 @@
 // config/database.js
+require('mysql2');
+
 const { Sequelize } = require('sequelize');
 
 const sequelize = new Sequelize(
