@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://we-boost-64ej.vercel.app/api",
+  baseURL: process.env.REACT_APP_API_URL,
 });
 
 API.interceptors.request.use((config) => {
