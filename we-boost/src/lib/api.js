@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: "http://we-boost-64ej.vercel.app/api",
 });
 
 API.interceptors.request.use((config) => {
