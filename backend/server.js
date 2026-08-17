@@ -95,27 +95,19 @@ app.use((err, req, res, next) => {
 // Database connection and server startup
 const PORT = process.env.PORT || 5000;
 
-const startServer = async () => {
-  try {
-    // Test database connection
-    await sequelize.authenticate();
-    console.log('✅ Database connection established successfully.');
-    
-    // Sync database (use { force: false } in production)
-    await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
-    console.log('✅ Database synchronized successfully.');
-    
-    // Start server
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
-    });
-  } catch (error) {
-    console.error('❌ Unable to start server:', error);
-    process.exit(1);
-  }
-};
+sequelize.authenticate()
+  .then(() => console.log('✅ Database connection established successfully.'))
+  .then(() => sequelize.sync({ alter: process.env.NODE_ENV === 'development' }))
+  .then(() => console.log('✅ Database synchronized successfully.'))
+  .catch((error) => console.error('❌ Database connection error:', error));
 
-startServer();
+// Only actually listen on a port when running locally.
+// On Vercel, the exported app is invoked directly per-request.
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+  });
+}
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
