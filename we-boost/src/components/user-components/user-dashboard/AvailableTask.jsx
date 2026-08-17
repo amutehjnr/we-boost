@@ -11,6 +11,7 @@ import {
   FaMusic,
 } from "react-icons/fa";
 import { useTheme } from "../../../context/ThemeContext";
+import axios from "axios";
 
 const platformIcons = {
   Instagram: <FaInstagram className="text-pink-500 text-3xl" />,
