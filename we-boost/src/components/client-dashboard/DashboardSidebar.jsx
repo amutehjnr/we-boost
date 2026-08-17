@@ -10,7 +10,6 @@ import {
   FaMoneyBillWave,
   FaHistory,
   FaCogs,
-  FaKey,
   FaHeadset,
   FaUser,
 } from "react-icons/fa";

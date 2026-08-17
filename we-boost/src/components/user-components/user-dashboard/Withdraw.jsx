@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FaWallet, FaMoneyBillWave, FaInfoCircle } from "react-icons/fa";
+import { FaWallet, FaInfoCircle } from "react-icons/fa";
 import { useTheme } from "../../../context//ThemeContext";
 
 export default function Withdraw() {
