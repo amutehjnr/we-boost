@@ -3,7 +3,7 @@ import './index.css';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import ProtectedRoute from './route-module/ProtectedRoute';
-import { auth } from "./firebaseConfig";
+import { auth } from "./firebase";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import Home from './components/Home';
 import SignUp from './components/SignUp';
