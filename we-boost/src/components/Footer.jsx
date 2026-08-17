@@ -43,19 +43,19 @@ const Footer = ({ isClient }) => {
                 <div>
                     <h3 className="text-white font-semibold mb-3">Follow Us</h3>
                     <div className="flex space-x-4">
-                        <a href="#" className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-800 hover:bg-red-500 transition">
+                        <a href="https://facebook.com" target="_blank" rel="noreferrer" className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-800 hover:bg-red-500 transition">
                             <FaFacebookF />
                         </a>
-                        <a href="#" className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-800 hover:bg-red-500 transition">
+                        <a href="https://twitter.com" target="_blank" rel="noreferrer" className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-800 hover:bg-red-500 transition">
                             <FaTwitter />
                         </a>
-                        <a href="#" className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-800 hover:bg-red-500 transition">
+                        <a href="https://instagram.com" target="_blank" rel="noreferrer" className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-800 hover:bg-red-500 transition">
                             <FaInstagram />
                         </a>
-                        <a href="#" className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-800 hover:bg-red-500 transition">
+                        <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-800 hover:bg-red-500 transition">
                             <FaLinkedinIn />
                         </a>
-                        <a href="#" className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-800 hover:bg-red-500 transition">
+                        <a href="https://youtube.com" target="_blank" rel="noreferrer" className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-800 hover:bg-red-500 transition">
                             <FaYoutube />
                         </a>
                     </div>
@@ -68,8 +68,18 @@ const Footer = ({ isClient }) => {
                     © {new Date().getFullYear()} <span className="text-white font-semibold"><span className="text-red-600">We</span>Boost</span>. All rights reserved.
                 </p>
                 <div className="mt-2">
-                    <a href="#" className="hover:text-red-500 transition px-2">Privacy Policy</a> |
-                    <a href="#" className="hover:text-red-500 transition px-2">Terms of Service</a>
+                    <Link
+                        to="/privacy-policy"
+                        className="hover:text-red-500 transition px-2"
+                    >
+                        Privacy Policy
+                    </Link>
+                    <Link
+                        to="/terms"
+                        className="hover:text-red-500 transition px-2"
+                    >
+                        Terms of Service
+                    </Link>
                 </div>
             </div>
         </footer>

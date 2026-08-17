@@ -117,7 +117,7 @@ function App() {
           }
         />
 
-        // Client Dashboard Routes
+        {/* Client Dashboard Routes */}
         <Route path='/dashboard-layout' element={
           <ProtectedRoute>
             <DashboardLayout handleLogout={handleLogout} user={user} isClient={isClient} userModeToggle={userModeToggle} />
@@ -149,7 +149,7 @@ function App() {
           </ProtectedRoute>
         } />
 
-        // User Dashboard Routes
+        {/* User Dashboard Routes */}
         <Route path='/user-dashboard' element={
           <ProtectedRoute>
             <UserDashboardLayout isClient={isClient} userModeToggle={userModeToggle} />
