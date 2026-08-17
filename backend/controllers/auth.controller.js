@@ -1,7 +1,7 @@
 // controllers/auth.controller.js
 const { User } = require('../models');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
+const admin = require('../config/firebase-admin');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -17,12 +17,35 @@ const generateRefreshToken = (userId) => {
   });
 };
 
+// Verify the Firebase ID token sent in the Authorization header.
+// Throws { status, message } on failure so callers can respond appropriately.
+const verifyFirebaseToken = async (req) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw { status: 401, message: 'Missing or invalid authorization header' };
+  }
+
+  const idToken = authHeader.split('Bearer ')[1];
+
+  try {
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    return decoded; // decoded.uid and decoded.email are now server-verified
+  } catch (err) {
+    throw { status: 401, message: 'Invalid or expired Firebase token' };
+  }
+};
+
 // @desc    Register new user
 // @route   POST /api/auth/register
-// @access  Public
+// @access  Public (requires valid Firebase ID token)
 exports.register = async (req, res) => {
   try {
-    const { fullName, email, password, isClient, firebaseUid } = req.body;
+    const decoded = await verifyFirebaseToken(req);
+    const firebaseUid = decoded.uid;
+    const email = decoded.email;
+
+    const { fullName, isClient } = req.body;
 
     // Validation
     if (!fullName || !email || !firebaseUid) {
@@ -32,9 +55,9 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Check if user exists
-    const existingUser = await User.findOne({ 
-      where: { email } 
+    // Check if user exists (by email or by firebaseUid, in case of retry)
+    const existingUser = await User.findOne({
+      where: { email }
     });
 
     if (existingUser) {
@@ -48,7 +71,6 @@ exports.register = async (req, res) => {
     const user = await User.create({
       fullName,
       email,
-      password,
       firebaseUid,
       isClient: isClient !== undefined ? isClient : true,
       role: isClient ? 'client' : 'user'
@@ -68,6 +90,12 @@ exports.register = async (req, res) => {
       }
     });
   } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({
+        success: false,
+        message: error.message
+      });
+    }
     console.error('Register error:', error);
     res.status(500).json({
       success: false,
@@ -79,50 +107,20 @@ exports.register = async (req, res) => {
 
 // @desc    Login user
 // @route   POST /api/auth/login
-// @access  Public
+// @access  Public (requires valid Firebase ID token)
 exports.login = async (req, res) => {
   try {
-    const { email, password, firebaseUid } = req.body;
+    const decoded = await verifyFirebaseToken(req);
+    const firebaseUid = decoded.uid;
 
-    if (!email) {
-      return res.status(400).json({
+    // Find user by the server-verified firebaseUid — never trust req.body for identity
+    const user = await User.findOne({ where: { firebaseUid } });
+
+    if (!user) {
+      return res.status(404).json({
         success: false,
-        message: 'Please provide email'
+        message: 'User not found. Please register first.'
       });
-    }
-
-    // Find user
-    let user = await User.findOne({ where: { email } });
-
-    // If firebaseUid provided, find or create user
-    if (firebaseUid) {
-      if (!user) {
-        user = await User.findOne({ where: { firebaseUid } });
-      }
-      
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: 'User not found. Please register first.'
-        });
-      }
-    } else {
-      // Traditional email/password login
-      if (!user || !password) {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid credentials'
-        });
-      }
-
-      // Check password
-      const isPasswordValid = await user.comparePassword(password);
-      if (!isPasswordValid) {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid credentials'
-        });
-      }
     }
 
     // Check if account is active
@@ -157,6 +155,12 @@ exports.login = async (req, res) => {
       }
     });
   } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({
+        success: false,
+        message: error.message
+      });
+    }
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
@@ -205,7 +209,7 @@ exports.refreshToken = async (req, res) => {
 
     // Verify refresh token
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-    
+
     // Find user
     const user = await User.findByPk(decoded.id);
 
