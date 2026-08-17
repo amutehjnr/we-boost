@@ -5,12 +5,14 @@ const API = axios.create({
 });
 
 API.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  // Don't overwrite an Authorization header the caller already set explicitly
+  // (e.g. Firebase ID token for /auth/login and /auth/register)
+  if (!config.headers.Authorization) {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
-
   return config;
 });
 
