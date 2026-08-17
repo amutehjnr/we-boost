@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { FaUserTie, FaUser } from "react-icons/fa";
 
 export default function RoleToggle({ isClient, setIsClient, userModeToggle }) {

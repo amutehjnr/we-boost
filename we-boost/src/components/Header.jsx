@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { FiMenu, FiX } from "react-icons/fi";
-import { FaUserCircle } from "react-icons/fa";
+// import { FaUserCircle } from "react-icons/fa";
 import { MdSpaceDashboard } from "react-icons/md";
 import {CgProfile} from "react-icons/cg";
 import logo from "../../src/images/we-boost.png";
