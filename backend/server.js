@@ -25,6 +25,7 @@ app.use(cors({
   origin: [
       "https://we-boost.vercel.app",
       "http://localhost:3000",
+      "https://we-boost-64ej.vercel.app",
     ],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
