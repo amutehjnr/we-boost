@@ -32,6 +32,7 @@ const verifyFirebaseToken = async (req) => {
     const decoded = await admin.auth().verifyIdToken(idToken);
     return decoded; // decoded.uid and decoded.email are now server-verified
   } catch (err) {
+    console.error('Firebase token verification failed:', err.message);
     throw { status: 401, message: 'Invalid or expired Firebase token' };
   }
 };
