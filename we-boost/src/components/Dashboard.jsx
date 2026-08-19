@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import DashboardLayout from "./client-dashboard/DashboardLayout";
 import { FaShoppingCart, FaWallet, FaClock, FaChartLine } from "react-icons/fa";
-import axios from "axios";
+import API from "../lib/api";
 import { formatCurrency, formatNumber } from "../utils/format";
 
 export default function DashboardHome({ isClient, userModeToggle }) {
@@ -16,19 +16,13 @@ export default function DashboardHome({ isClient, userModeToggle }) {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const statsRes = await axios.get("http://localhost:5000/api/orders/stats", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const statsRes = await API.get("/orders/stats");
         setStats(statsRes.data.data);
 
-        const ordersRes = await axios.get("http://localhost:5000/api/orders?limit=5", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const ordersRes = await API.get("/orders?limit=5");
         setRecentOrders(ordersRes.data.data);
 
-        const userRes = await axios.get("http://localhost:5000/api/users/profile", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const userRes = await API.get("/users/profile");
         setWalletBalance(Number(userRes.data.data.walletBalance) || 0);
       } catch (error) {
         console.error("Failed to load dashboard data:", error);

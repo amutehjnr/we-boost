@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../../../context/ThemeContext";
-import axios from "axios";
+import API from "../../../lib/api";
 
 import Logo from "../../../images/we-boost.png";
 import ModeToggle from "../../ModeToggle";
@@ -35,9 +35,7 @@ export default function UserDashboardLayout({ isClient, userModeToggle }) {
         const token = localStorage.getItem("token");
         if (!token) return navigate("/signin");
 
-        const res = await axios.get("http://localhost:5000/api/users/profile", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await API.get("/users/profile");
 
         setUser(res.data.data);
       } catch (error) {

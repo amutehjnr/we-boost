@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { FaWallet } from "react-icons/fa";
 import { useTheme } from "../../context/ThemeContext";
 import DashboardLayout from "./DashboardLayout";
-import axios from "axios";
+import API from "../../lib/api";
 
 export default function AddFunds({ isClient, userModeToggle }) {
   const { theme } = useTheme();
@@ -23,10 +23,9 @@ export default function AddFunds({ isClient, userModeToggle }) {
     setLoading(true);
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/payments/initialize",
-        { amount, paymentGateway: method },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await API.post(
+        "/payments/initialize",
+        { amount, paymentGateway: method }
       );
 
       const url = method === "Paystack" ? res.data.data.authorizationUrl : res.data.data.paymentLink;

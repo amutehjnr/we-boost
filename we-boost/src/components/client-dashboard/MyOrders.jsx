@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { FaListAlt } from "react-icons/fa";
 import DashboardLayout from "./DashboardLayout";
 import { useTheme } from "../../context/ThemeContext";
-import axios from "axios";
+import API from "../../lib/api";
 
 export default function MyOrders({ isClient, userModeToggle }) {
   const { theme } = useTheme();
@@ -15,9 +15,7 @@ export default function MyOrders({ isClient, userModeToggle }) {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/orders", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await API.get("/orders");
         setOrders(res.data.data || []);
       } catch (error) {
         console.error("Failed to fetch orders:", error);

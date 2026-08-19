@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import DashboardLayout from "./DashboardLayout";
 import { FaShoppingCart, FaInfoCircle } from "react-icons/fa";
 import { useTheme } from "../../context/ThemeContext";
-import axios from "axios";
+import API from "../../lib/api";
 
 export default function NewOrder({ isClient, userModeToggle }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -58,16 +58,15 @@ export default function NewOrder({ isClient, userModeToggle }) {
     }
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/orders",
+      const res = await API.post(
+        "/orders",
         {
           platform: formData.platform,
           category: formData.category,
           service: formData.service,
           targetUrl: formData.username,
           quantity: qty,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
+        }
       );
 
       setMessage({ type: "success", text: res.data.message });

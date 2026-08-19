@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaUserEdit, FaEnvelope, FaCalendarAlt, FaChartLine } from "react-icons/fa";
 import { MdCampaign } from "react-icons/md";
 import { FiUsers } from "react-icons/fi";
-import axios from "axios";
+import API from "../lib/api";
 import Header from "./Header";
 
 export default function Profile({ handleLogout, isClient, userModeToggle }) {
@@ -19,13 +19,9 @@ export default function Profile({ handleLogout, isClient, userModeToggle }) {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const profileRes = await axios.get("http://localhost:5000/api/users/profile", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const profileRes = await API.get("/users/profile");
 
-        const statsRes = await axios.get("http://localhost:5000/api/users/stats", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const statsRes = await API.get("/users/stats");
 
         const userData = profileRes.data.data;
         setUser(userData);
@@ -51,13 +47,12 @@ export default function Profile({ handleLogout, isClient, userModeToggle }) {
 
   const handleSave = async () => {
     try {
-      const res = await axios.put(
-        "http://localhost:5000/api/user/profile",
+      const res = await API.put(
+        "/users/profile",
         {
           fullName: editForm.fullName,
           bio: editForm.bio,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
+        }
       );
 
       setUser(res.data.data);

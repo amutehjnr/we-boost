@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { FaHistory } from "react-icons/fa";
 import { useTheme } from "../../context/ThemeContext";
 import DashboardLayout from "./DashboardLayout";
-import axios from "axios";
+import API from "../../lib/api";
 
 export default function FundsHistory({ isClient, userModeToggle }) {
   const { theme } = useTheme();
@@ -17,9 +17,7 @@ export default function FundsHistory({ isClient, userModeToggle }) {
   useEffect(() => {
     const fetchPayments = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/payments", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await API.get("/payments");
 
         setTransactions(res.data.data || []);
       } catch (err) {
