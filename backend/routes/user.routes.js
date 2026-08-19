@@ -12,6 +12,7 @@ router.get('/profile', verifyJWT, async (req, res) => {
     });
     res.json({ success: true, data: user });
   } catch (error) {
+    console.error('Get profile error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -32,6 +33,7 @@ router.put('/profile', verifyJWT, async (req, res) => {
     
     res.json({ success: true, data: user });
   } catch (error) {
+    console.error('Update profile error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -46,6 +48,7 @@ router.post('/toggle-mode', verifyJWT, async (req, res) => {
     });
     res.json({ success: true, data: user });
   } catch (error) {
+    console.error('Toggle mode error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -67,6 +70,7 @@ router.get('/stats', verifyJWT, async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Get stats error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
