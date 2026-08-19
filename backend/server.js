@@ -21,6 +21,25 @@ const app = express();
 
 app.set('trust proxy', 1);
 
+// Database connection + sync, memoized so it only runs once per warm instance.
+// Awaited by the /api middleware below before any route touches the database.
+let dbReady = null;
+
+const initDb = () => {
+  if (!dbReady) {
+    dbReady = sequelize.authenticate()
+      .then(() => console.log('✅ Database connection established successfully.'))
+      .then(() => sequelize.sync({ alter: false }))
+      .then(() => console.log('✅ Database synced (missing tables created).'))
+      .catch((error) => {
+        console.error('❌ Database init error:', error);
+        dbReady = null;
+        throw error;
+      });
+  }
+  return dbReady;
+};
+
 // Security middleware
 app.use(helmet());
 app.use(cors({
@@ -63,6 +82,21 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Ensure the database connection + sync has completed before any /api route
+// touches the database. Prevents a cold-start race where a request hits a
+// table sync() hasn't created yet.
+app.use('/api', async (req, res, next) => {
+  try {
+    await initDb();
+    next();
+  } catch (error) {
+    res.status(503).json({
+      success: false,
+      message: 'Service temporarily unavailable, please try again in a moment.'
+    });
+  }
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -93,27 +127,6 @@ app.use((err, req, res, next) => {
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
-
-// Database connection and server startup
-const PORT = process.env.PORT || 5000;
-
-let dbReady = null;
-
-const initDb = () => {
-  if (!dbReady) {
-    dbReady = sequelize.authenticate()
-      .then(() => console.log('✅ Database connection established successfully.'))
-      .then(() => sequelize.sync({ alter: false }))
-      .then(() => console.log('✅ Database synced (missing tables created).'))
-      .catch((error) => {
-        console.error('❌ Database init error:', error);
-        dbReady = null;
-      });
-  }
-  return dbReady;
-};
-
-initDb();
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
