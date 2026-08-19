@@ -32,7 +32,6 @@ export default function NewOrder({ isClient, userModeToggle }) {
 
   const total = qty > 0 ? (qty / 1000) * rate : 0;
 
-  const token = localStorage.getItem("token");
 
   const handleSubmit = async (e) => {
     e.preventDefault();

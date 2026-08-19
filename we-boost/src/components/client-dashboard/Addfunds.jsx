@@ -11,7 +11,6 @@ export default function AddFunds({ isClient, userModeToggle }) {
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const token = localStorage.getItem("token");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
