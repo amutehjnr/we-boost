@@ -119,11 +119,15 @@ const Payment = sequelize.define('Payment', {
 });
 
 // Hooks
-Payment.beforeCreate(async (payment) => {
-  // Generate unique transaction ID
-  const timestamp = Date.now();
-  const random = Math.floor(Math.random() * 10000);
-  payment.transactionId = `TXN${timestamp}${random}`;
+// Must run on beforeValidate, not beforeCreate — Sequelize validates
+// (including allowNull: false checks) before beforeCreate hooks run,
+// so generating transactionId in beforeCreate is too late.
+Payment.beforeValidate(async (payment) => {
+  if (!payment.transactionId) {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 10000);
+    payment.transactionId = `TXN${timestamp}${random}`;
+  }
 });
 
 Payment.beforeUpdate(async (payment) => {
