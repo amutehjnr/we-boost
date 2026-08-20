@@ -1,20 +1,10 @@
 import React, { useEffect, useState } from "react";
-import {
-  FaInstagram,
-  FaFacebook,
-  FaTiktok,
-  FaTwitter,
-  FaYoutube,
-  FaSpotify,
-  FaMusic,
-} from "react-icons/fa";
 import { useTheme } from "../../../context/ThemeContext";
 import API from "../../../lib/api";
 
 export default function AvailableTask() {
   const { theme } = useTheme();
   const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
