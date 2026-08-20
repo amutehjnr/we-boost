@@ -76,7 +76,7 @@ export default function MyTasks() {
             </tr>
           </thead>
           <tbody>
-            {myTasks.map((task) => (
+            {tasks.map((task) => (
               <tr
                 key={task.id}
                 className={`border-b transition-all duration-200 ${
