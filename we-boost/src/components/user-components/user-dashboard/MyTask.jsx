@@ -25,11 +25,10 @@ export default function MyTasks() {
       setLoading(true);
       const res = await API.get("/tasks/my-tasks?limit=10"); // adjust limit as needed
       setTasks(res.data.tasks || []); // backend should return { tasks: [...] }
-      setLoading(false);
+      ;
     } catch (err) {
       console.error(err);
-      setError("Failed to load tasks. Please try again later.");
-      setLoading(false);
+      setTasks([]);
     }
   };
 
