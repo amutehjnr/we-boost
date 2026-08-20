@@ -9,8 +9,7 @@ export default function UserDashboardHome() {
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState(null);
   const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [tasksLoading, setTasksLoading] = useState(true);
+  
 
   // Fetch profile, stats, and tasks
   useEffect(() => {
