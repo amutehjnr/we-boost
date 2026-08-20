@@ -5,7 +5,7 @@ import API from "../../../lib/api";
 export default function AvailableTask() {
   const { theme } = useTheme();
   const [tasks, setTasks] = useState([]);
-  const [error, setError] = useState("");
+  
 
   useEffect(() => {
     const fetchTasks = async () => {
