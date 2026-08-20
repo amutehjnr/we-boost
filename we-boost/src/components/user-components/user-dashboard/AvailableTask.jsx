@@ -16,10 +16,7 @@ export default function AvailableTask() {
       } catch (err) {
         console.error("Error fetching tasks:", err);
 
-        setError(
-          err.response?.data?.message ||
-            "Failed to load tasks. Try again."
-        );
+        setTasks([]);
       } 
     };
 
