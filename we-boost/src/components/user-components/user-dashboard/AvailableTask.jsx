@@ -11,16 +11,6 @@ import {
 import { useTheme } from "../../../context/ThemeContext";
 import API from "../../../lib/api";
 
-const platformIcons = {
-  Instagram: <FaInstagram className="text-pink-500 text-3xl" />,
-  TikTok: <FaTiktok className="text-black dark:text-white text-3xl" />,
-  YouTube: <FaYoutube className="text-red-600 text-3xl" />,
-  "Twitter (X)": <FaTwitter className="text-sky-500 text-3xl" />,
-  Spotify: <FaSpotify className="text-green-500 text-3xl" />,
-  Audiomack: <FaMusic className="text-yellow-500 text-3xl" />,
-  Facebook: <FaFacebook className="text-blue-600 text-3xl" />,
-};
-
 export default function AvailableTask() {
   const { theme } = useTheme();
   const [tasks, setTasks] = useState([]);
