@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { FaWallet } from "react-icons/fa";
 import { useTheme } from "../../context/ThemeContext";
 import DashboardLayout from "./DashboardLayout";
@@ -10,6 +11,33 @@ export default function AddFunds({ isClient, userModeToggle }) {
   const [method, setMethod] = useState("Paystack");
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  // After returning from Paystack/Flutterwave, confirm the payment with our
+  // backend so the wallet balance actually updates.
+  useEffect(() => {
+    const reference = searchParams.get("reference");
+    if (!reference) return;
+
+    setVerifying(true);
+    API.get(`/payments/verify/${reference}`)
+      .then((res) => {
+        alert(res.data.message || "Payment verified successfully!");
+      })
+      .catch((error) => {
+        console.error(error);
+        const msg = error?.response?.data?.message || "Payment verification failed.";
+        alert(msg);
+      })
+      .finally(() => {
+        setVerifying(false);
+        // Clear the query params so a page refresh doesn't re-verify
+        navigate("/dashboard/add-funds", { replace: true });
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
   const handleSubmit = async (e) => {
@@ -49,6 +77,11 @@ export default function AddFunds({ isClient, userModeToggle }) {
 
         <div className="px-4 md:px-8">
           <div className={`p-6 rounded-2xl shadow-xl border max-w-xl ${theme === "dark" ? "bg-[#141414] border-gray-800" : "bg-white border-gray-200"}`}>
+            {verifying && (
+              <div className={`mb-4 p-3 rounded-md text-sm font-medium ${theme === "dark" ? "bg-yellow-900/30 text-yellow-300" : "bg-yellow-50 text-yellow-700"}`}>
+                Confirming your payment, please wait...
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
                 <label className="block mb-2 font-medium">Payment Gateway</label>
