@@ -30,37 +30,15 @@ export default function AvailableTask() {
           err.response?.data?.message ||
             "Failed to load tasks. Try again."
         );
-      } finally {
-        setLoading(false);
-      }
+      } 
     };
 
     fetchTasks();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="text-center text-gray-500 dark:text-gray-400 mt-6">
-        Loading tasks...
-      </div>
-    );
-  }
+  
 
-  if (error) {
-    return (
-      <div className="text-center text-red-600 dark:text-red-400 mt-6">
-        {error}
-      </div>
-    );
-  }
-
-  if (!tasks.length) {
-    return (
-      <div className="text-center text-gray-500 dark:text-gray-400 mt-6">
-        No tasks available.
-      </div>
-    );
-  }
+  
 
   return (
     <div
