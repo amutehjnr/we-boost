@@ -1,7 +1,8 @@
 // src/pages/userDashboard/UserDashboardHome.jsx
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { FaWallet, FaCheckCircle, FaTasks, FaTrophy } from "react-icons/fa";
-import { useTheme } from "../../../context/ThemeContext";
+import { useTheme } from "../../../context/ThemeContext"; // ✅ import your theme context
+import UserDashboardLayout from "./UserDashboardLayout";
 import API from "../../../lib/api";
 
 export default function UserDashboardHome() {
@@ -117,85 +118,70 @@ export default function UserDashboardHome() {
         },
       ];
 
-  return (
-    <div
-      className={`space-y-8 transition-colors duration-300 ${
-        theme === "dark"
-          ? "bg-[#121212] text-gray-200"
-          : "bg-gray-50 text-gray-800"
-      } p-6 rounded-2xl`}
-    >
-      <h1 className="text-2xl font-bold">
-        Welcome back,{" "}
-        <span className="text-red-600">{user?.fullName || "User"}</span> 👋
-      </h1>
-      <p className="text-gray-500 dark:text-gray-400">
-        Here’s an overview of your performance and earnings today.
-      </p>
+    return (
+            <div
+                className={`space-y-8 transition-colors duration-300 ${theme === "dark" ? "bg-[#121212] text-gray-200" : "bg-gray-50 text-gray-800"
+                    } p-6 rounded-2xl`}
+            >
+                <h1 className="text-2xl font-bold">
+                    Welcome back, <span className="text-red-600">{user?.fullName || "User"}</span> 👋
+                </h1>
+                <p className="text-gray-500 dark:text-gray-400">
+                    Here’s an overview of your performance and earnings today.
+                </p>
 
-      {/* Stats Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-        {dynamicStats.map((item, index) => (
-          <div
-            key={index}
-            className={`flex items-center gap-4 p-5 rounded-2xl shadow-md transition-all duration-300 ${item.color}`}
-          >
-            <div className="text-3xl">{item.icon}</div>
-            <div>
-              <p className="text-sm font-medium">{item.label}</p>
-              <h3 className="text-lg font-bold">{item.value}</h3>
+                {/* Stats Section */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+                    {dynamicStats.map((item, index) => (
+                        <div
+                            key={index}
+                            className={`flex items-center gap-4 p-5 rounded-2xl shadow-md transition-all duration-300 ${item.color}`}
+                        >
+                            <div className="text-3xl">{item.icon}</div>
+                            <div>
+                                <p className="text-sm font-medium">{item.label}</p>
+                                <h3 className="text-lg font-bold">{item.value}</h3>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Recent Tasks Section */}
+                <div className="bg-white dark:bg-[#181818] p-6 rounded-2xl shadow-md border dark:border-gray-700 transition-all duration-300">
+                    <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">
+                        Recent Tasks
+                    </h2>
+                    <table className="w-full text-sm text-left text-gray-700 dark:text-gray-300">
+                        <thead className="border-b dark:border-gray-700 text-gray-600 dark:text-gray-400">
+                            <tr>
+                                <th className="py-3">Platform</th>
+                                <th className="py-3">Task Type</th>
+                                <th className="py-3">Reward</th>
+                                <th className="py-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="border-b dark:border-gray-700">
+                                <td className="py-3">Instagram</td>
+                                <td>Follow</td>
+                                <td>₦50</td>
+                                <td className="text-green-500 font-medium">Completed</td>
+                            </tr>
+                            <tr className="border-b dark:border-gray-700">
+                                <td className="py-3">TikTok</td>
+                                <td>Like</td>
+                                <td>₦25</td>
+                                <td className="text-yellow-500 font-medium">Pending</td>
+                            </tr>
+                            <tr>
+                                <td className="py-3">YouTube</td>
+                                <td>Comment</td>
+                                <td>₦40</td>
+                                <td className="text-green-500 font-medium">Completed</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Recent Tasks Section */}
-      <div className="bg-white dark:bg-[#181818] p-6 rounded-2xl shadow-md border dark:border-gray-700 transition-all duration-300">
-        <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">
-          Recent Tasks
-        </h2>
-
-        {tasksLoading ? (
-          <p className="text-center text-gray-500 dark:text-gray-400">
-            Loading tasks...
-          </p>
-        ) : tasks.length === 0 ? (
-          <p className="text-center text-gray-500 dark:text-gray-400">
-            {user.isClient
-              ? "Clients do not have tasks."
-              : "No tasks available yet."}
-          </p>
-        ) : (
-          <table className="w-full text-sm text-left text-gray-700 dark:text-gray-300">
-            <thead className="border-b dark:border-gray-700 text-gray-600 dark:text-gray-400">
-              <tr>
-                <th className="py-3">Platform</th>
-                <th className="py-3">Task Type</th>
-                <th className="py-3">Reward</th>
-                <th className="py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tasks.map((task) => (
-                <tr key={task.id} className="border-b dark:border-gray-700">
-                  <td className="py-3">{task.platform}</td>
-                  <td>{task.type}</td>
-                  <td>₦{task.reward}</td>
-                  <td
-                    className={`font-medium ${
-                      task.status === "Completed"
-                        ? "text-green-500"
-                        : "text-yellow-500"
-                    }`}
-                  >
-                    {task.status}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
-  );
+    );
 }
