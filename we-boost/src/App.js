@@ -41,7 +41,6 @@ function App() {
   const [isClient, setIsClient] = useState(true); // State for client mode
 
   const [user] = useAuthState(auth); // Get current user from Firebase Auth
-  const [profileLoaded, setProfileLoaded] = useState(false);
 
  // 🧩 Validation and login handler
   const handleSignIn = async (e) => {
@@ -92,10 +91,7 @@ function App() {
   // Load the real account type from the backend once Firebase confirms who's
   // signed in — isClient must reflect the database, not just default to true.
   useEffect(() => {
-    if (!user) {
-      setProfileLoaded(false);
-      return;
-    }
+    if (!user) return;
 
     API.get("/users/profile")
       .then((res) => {
@@ -103,9 +99,6 @@ function App() {
       })
       .catch((error) => {
         console.error("Failed to load profile for mode:", error);
-      })
-      .finally(() => {
-        setProfileLoaded(true);
       });
   }, [user]);
 
