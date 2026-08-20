@@ -13,6 +13,7 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [accountType, setAccountType] = useState("client"); // "client" orders services, "user" completes tasks and earns
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
@@ -43,14 +44,14 @@ export default function Signup() {
       // 3️⃣ Register user in backend
       const res = await API.post(
         "/auth/register",
-        { fullName, email, firebaseUid },
+        { fullName, email, firebaseUid, isClient: accountType === "client" },
         { headers: { Authorization: `Bearer ${firebaseToken}` } }
       );
 
       // 4️⃣ Save backend token
       localStorage.setItem("token", res.data.data.token);
 
-      window.location.href = "/dashboard";
+      window.location.href = accountType === "client" ? "/dashboard" : "/user-dashboard";
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || err.message || "Registration failed");
@@ -72,6 +73,34 @@ export default function Signup() {
             required
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none"
           />
+        </div>
+
+        <div>
+          <label className="block mb-2 text-sm font-medium text-gray-600">I want to</label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setAccountType("client")}
+              className={`py-2 px-3 rounded-lg border text-sm font-semibold transition-colors ${
+                accountType === "client"
+                  ? "bg-red-600 border-red-600 text-white"
+                  : "border-gray-300 text-gray-600 hover:border-red-400"
+              }`}
+            >
+              Order services (Client)
+            </button>
+            <button
+              type="button"
+              onClick={() => setAccountType("user")}
+              className={`py-2 px-3 rounded-lg border text-sm font-semibold transition-colors ${
+                accountType === "user"
+                  ? "bg-red-600 border-red-600 text-white"
+                  : "border-gray-300 text-gray-600 hover:border-red-400"
+              }`}
+            >
+              Complete tasks & earn
+            </button>
+          </div>
         </div>
 
         <div className="relative">

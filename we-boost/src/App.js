@@ -28,6 +28,7 @@ import Earnings from './components/user-components/user-dashboard/Earnings';
 import LinkedAccounts from './components/user-components/user-dashboard/LinkedAcc';
 import Withdraw from './components/user-components/user-dashboard/Withdraw';
 import Settings from './components/user-components/user-dashboard/Settings';
+import API from './lib/api';
 
 function App() {
   const navigate = useNavigate();
@@ -40,6 +41,7 @@ function App() {
   const [isClient, setIsClient] = useState(true); // State for client mode
 
   const [user] = useAuthState(auth); // Get current user from Firebase Auth
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
  // 🧩 Validation and login handler
   const handleSignIn = async (e) => {
@@ -87,8 +89,38 @@ function App() {
     }
   }, [darkMode]);
 
-  function userModeToggle() {
-    setIsClient(prev => !prev);
+  // Load the real account type from the backend once Firebase confirms who's
+  // signed in — isClient must reflect the database, not just default to true.
+  useEffect(() => {
+    if (!user) {
+      setProfileLoaded(false);
+      return;
+    }
+
+    API.get("/users/profile")
+      .then((res) => {
+        setIsClient(!!res.data.data.isClient);
+      })
+      .catch((error) => {
+        console.error("Failed to load profile for mode:", error);
+      })
+      .finally(() => {
+        setProfileLoaded(true);
+      });
+  }, [user]);
+
+  // Persist the mode switch to the backend so it survives reloads and future
+  // logins, then update local state from the actual saved value and route
+  // to the matching dashboard.
+  async function userModeToggle() {
+    try {
+      const res = await API.post("/users/toggle-mode");
+      const nowIsClient = !!res.data.data.isClient;
+      setIsClient(nowIsClient);
+      navigate(nowIsClient ? "/dashboard" : "/user-dashboard");
+    } catch (error) {
+      console.error("Failed to toggle mode:", error);
+    }
   }
 
   return (

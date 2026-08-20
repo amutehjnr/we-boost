@@ -37,7 +37,8 @@ export default function SignIn() {
 
       localStorage.setItem("token", res.data.data.token);
 
-      window.location.href = "/dashboard";
+      const isClient = res.data.data.user?.isClient;
+      window.location.href = isClient ? "/dashboard" : "/user-dashboard";
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || err.message || "Login failed");
