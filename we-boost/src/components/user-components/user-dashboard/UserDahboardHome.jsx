@@ -32,27 +32,20 @@ export default function UserDashboardHome() {
           } catch (err) {
             console.error("Error fetching tasks:", err.response || err);
             setTasks([]);
-          } finally {
-            setTasksLoading(false);
-          }
+          } 
         } else {
           // Clients don't have tasks
           setTasks([]);
-          setTasksLoading(false);
+          
         }
       } catch (error) {
         console.error("Error loading dashboard:", error.response || error);
-      } finally {
-        setLoading(false);
-      }
+      } 
     };
 
     fetchData();
   }, []);
 
-  if (loading) {
-    return <div className="p-6 text-center">Loading dashboard...</div>;
-  }
 
   const dynamicStats = stats
     ? [
