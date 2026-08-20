@@ -160,27 +160,26 @@ export default function UserDashboardHome() {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr className="border-b dark:border-gray-700">
-                                <td className="py-3">Instagram</td>
-                                <td>Follow</td>
-                                <td>₦50</td>
-                                <td className="text-green-500 font-medium">Completed</td>
+                          {tasks.map((task) => (
+                            <tr key={task.id} className="border-b dark:border-gray-700">
+                                <td className="py-3">{task.platform}</td>
+                                <td>{task.type}</td>
+                                <td>₦{task.reward}</td>
+                                <td
+                                  className={`font-medium ${
+                                    task.status === "Completed"
+                                    ? "text-green-500"
+                                    : "text-yellow-500"
+                                  }`}
+                                >
+                                  {task.status}
+                                </td>
                             </tr>
-                            <tr className="border-b dark:border-gray-700">
-                                <td className="py-3">TikTok</td>
-                                <td>Like</td>
-                                <td>₦25</td>
-                                <td className="text-yellow-500 font-medium">Pending</td>
-                            </tr>
-                            <tr>
-                                <td className="py-3">YouTube</td>
-                                <td>Comment</td>
-                                <td>₦40</td>
-                                <td className="text-green-500 font-medium">Completed</td>
-                            </tr>
+                          ))}                            
                         </tbody>
                     </table>
                 </div>
             </div>
     );
 }
+
