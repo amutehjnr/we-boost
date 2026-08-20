@@ -8,17 +8,6 @@ export default function MyTasks() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Map platform name to icon
-  const platformIcons = {
-    Instagram: <FaInstagram className="text-pink-500 text-2xl" />,
-    TikTok: <FaTiktok className="text-black dark:text-white text-2xl" />,
-    YouTube: <FaYoutube className="text-red-600 text-2xl" />,
-    "Twitter (X)": <FaTwitter className="text-sky-500 text-2xl" />,
-    Spotify: <FaSpotify className="text-green-500 text-2xl" />,
-    Facebook: <FaFacebook className="text-blue-600 text-2xl" />,
-    Audiomack: <FaMusic className="text-yellow-500 text-2xl" />,
-  };
-
   const statusColor = (status) => {
     switch (status) {
       case "Completed":
