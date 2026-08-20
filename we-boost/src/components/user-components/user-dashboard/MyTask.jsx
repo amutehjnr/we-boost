@@ -5,8 +5,7 @@ import { useTheme } from "../../../context/ThemeContext";
 export default function MyTasks() {
   const { theme } = useTheme();
   const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  
 
   const statusColor = (status) => {
     switch (status) {
