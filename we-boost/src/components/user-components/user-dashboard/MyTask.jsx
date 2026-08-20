@@ -22,7 +22,7 @@ export default function MyTasks() {
 
   const fetchTasks = async () => {
     try {
-      setLoading(true);
+      
       const res = await API.get("/tasks/my-tasks?limit=10"); // adjust limit as needed
       setTasks(res.data.tasks || []); // backend should return { tasks: [...] }
       ;
