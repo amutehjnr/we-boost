@@ -1,5 +1,5 @@
 // src/pages/userDashboard/UserDashboardHome.jsx
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { FaWallet, FaCheckCircle, FaTasks, FaTrophy } from "react-icons/fa";
 import { useTheme } from "../../../context/ThemeContext"; // ✅ import your theme context
 import UserDashboardLayout from "./UserDashboardLayout";
