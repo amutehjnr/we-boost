@@ -185,14 +185,18 @@ const Task = sequelize.define('Task', {
 });
 
 // Hooks
-Task.beforeCreate(async (task) => {
-  // Generate unique task ID
-  const timestamp = Date.now();
-  const random = Math.floor(Math.random() * 1000);
-  task.taskId = `TASK${timestamp}${random}`;
-  
+// Must run on beforeValidate, not beforeCreate — Sequelize validates
+// (including allowNull: false checks) before beforeCreate hooks run,
+// so generating taskId in beforeCreate is too late.
+Task.beforeValidate(async (task) => {
+  if (!task.taskId) {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    task.taskId = `TASK${timestamp}${random}`;
+  }
+
   // Set expiration (24 hours from creation if assigned)
-  if (task.status === 'Assigned') {
+  if (task.status === 'Assigned' && !task.expiresAt) {
     task.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
   }
 });

@@ -141,14 +141,20 @@ const Withdrawal = sequelize.define('Withdrawal', {
 });
 
 // Hooks
-Withdrawal.beforeCreate(async (withdrawal) => {
-  // Generate unique withdrawal ID
-  const timestamp = Date.now();
-  const random = Math.floor(Math.random() * 1000);
-  withdrawal.withdrawalId = `WTH${timestamp}${random}`;
-  
+// Must run on beforeValidate, not beforeCreate — Sequelize validates
+// (including allowNull: false checks) before beforeCreate hooks run,
+// so generating withdrawalId in beforeCreate is too late.
+Withdrawal.beforeValidate(async (withdrawal) => {
+  if (!withdrawal.withdrawalId) {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    withdrawal.withdrawalId = `WTH${timestamp}${random}`;
+  }
+
   // Calculate net amount (deduct processing fee if any)
-  withdrawal.netAmount = withdrawal.amount - withdrawal.processingFee;
+  if (withdrawal.netAmount === undefined || withdrawal.netAmount === null) {
+    withdrawal.netAmount = withdrawal.amount - withdrawal.processingFee;
+  }
 });
 
 Withdrawal.beforeUpdate(async (withdrawal) => {

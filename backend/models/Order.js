@@ -145,14 +145,20 @@ const Order = sequelize.define('Order', {
 });
 
 // Hooks
-Order.beforeCreate(async (order) => {
-  // Generate unique order ID
-  const timestamp = Date.now();
-  const random = Math.floor(Math.random() * 1000);
-  order.orderId = `ORD${timestamp}${random}`;
-  
+// Must run on beforeValidate, not beforeCreate — Sequelize validates
+// (including allowNull: false checks) before beforeCreate hooks run,
+// so generating orderId in beforeCreate is too late.
+Order.beforeValidate(async (order) => {
+  if (!order.orderId) {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    order.orderId = `ORD${timestamp}${random}`;
+  }
+
   // Calculate remaining quantity
-  order.remainingQuantity = order.quantity;
+  if (order.remainingQuantity === undefined || order.remainingQuantity === null) {
+    order.remainingQuantity = order.quantity;
+  }
 });
 
 Order.beforeUpdate(async (order) => {
