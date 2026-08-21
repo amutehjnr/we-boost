@@ -7,7 +7,6 @@ import API from "../../lib/api";
 export default function Header({ setSidebarOpen, sidebarOpen, isClient, userModeToggle }) {
   const { theme, toggleTheme } = useTheme();
   const [user, setUser] = useState(null);
-  const [loadingUser, setLoadingUser] = useState(true);
 
   // Load logged-in user
   useEffect(() => {
@@ -17,8 +16,6 @@ export default function Header({ setSidebarOpen, sidebarOpen, isClient, userMode
         setUser(res.data.data);
       } catch (err) {
         console.error("❌ Failed to load user", err);
-      } finally {
-        setLoadingUser(false);
       }
     };
     fetchUser();
@@ -87,7 +84,7 @@ export default function Header({ setSidebarOpen, sidebarOpen, isClient, userMode
           )}
 
           <span className="text-gray-700 dark:text-gray-300 text-sm">
-            {loadingUser ? "Loading..." : user?.fullName || "User"}
+            {user?.fullName || "User"}
           </span>
         </div>
       </div>

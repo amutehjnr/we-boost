@@ -13,7 +13,6 @@ export default function Profile({ handleLogout, isClient, userModeToggle }) {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
-  const [loading, setLoading] = useState(true);
 
   // Fetch profile + stats
   useEffect(() => {
@@ -31,10 +30,8 @@ export default function Profile({ handleLogout, isClient, userModeToggle }) {
           bio: userData.bio || "",
         });
 
-        setLoading(false);
       } catch (error) {
         console.log("PROFILE LOAD ERROR:", error);
-        setLoading(false);
       }
     };
 
@@ -62,14 +59,6 @@ export default function Profile({ handleLogout, isClient, userModeToggle }) {
     }
   };
 
-  if (loading) {
-    return <div className="text-center mt-40 text-lg font-semibold">Loading profile...</div>;
-  }
-
-  if (!user) {
-    return <div className="text-center mt-40 text-lg text-red-600">Failed to load profile</div>;
-  }
-
   return (
     <>
       <Header
@@ -91,7 +80,7 @@ export default function Profile({ handleLogout, isClient, userModeToggle }) {
             <div className="flex-shrink-0">
               <img
                 src={
-                  user.photoUrl ||
+                  user?.photoUrl ||
                   "https://cdn-icons-png.flaticon.com/512/847/847969.png"
                 }
                 alt="profile avatar"
@@ -101,20 +90,20 @@ export default function Profile({ handleLogout, isClient, userModeToggle }) {
 
             {/* Info */}
             <div className="flex-1 text-center md:text-left">
-              <h2 className="text-2xl font-bold text-gray-900">{user.fullName}</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{user?.fullName || ""}</h2>
 
               <div className="flex flex-col md:flex-row md:items-center text-gray-600 mt-2 gap-2">
                 <span className="flex items-center gap-2">
-                  <FaEnvelope className="text-red-500" /> {user.email}
+                  <FaEnvelope className="text-red-500" /> {user?.email || ""}
                 </span>
 
                 <span className="flex items-center gap-2 md:ml-6">
                   <FaCalendarAlt className="text-red-500" /> Joined{" "}
-                  {new Date(user.createdAt).toDateString()}
+                  {user?.createdAt ? new Date(user.createdAt).toDateString() : ""}
                 </span>
               </div>
 
-              <p className="mt-4 text-gray-700">{user.bio || "No bio provided."}</p>
+              <p className="mt-4 text-gray-700">{user?.bio || "No bio provided."}</p>
 
               {/* Edit button */}
               <button
@@ -131,20 +120,20 @@ export default function Profile({ handleLogout, isClient, userModeToggle }) {
 
             <div className="bg-gray-100 p-5 rounded-lg shadow-sm hover:shadow-md transition">
               <MdCampaign className="mx-auto text-red-600 text-3xl mb-2" />
-              <h3 className="font-bold text-gray-800 text-lg">{stats.ordersCreated || 0}</h3>
+              <h3 className="font-bold text-gray-800 text-lg">{stats?.ordersCreated || 0}</h3>
               <p className="text-gray-600">Orders Created</p>
             </div>
 
             <div className="bg-gray-100 p-5 rounded-lg shadow-sm hover:shadow-md transition">
               <FiUsers className="mx-auto text-red-600 text-3xl mb-2" />
-              <h3 className="font-bold text-gray-800 text-lg">{stats.tasksCompleted || 0}</h3>
+              <h3 className="font-bold text-gray-800 text-lg">{stats?.tasksCompleted || 0}</h3>
               <p className="text-gray-600">Tasks Completed</p>
             </div>
 
             <div className="bg-gray-100 p-5 rounded-lg shadow-sm hover:shadow-md transition">
               <FaChartLine className="mx-auto text-red-600 text-3xl mb-2" />
               <h3 className="font-bold text-gray-800 text-lg">
-                {stats.userLevel || "Basic"}
+                {stats?.userLevel || "Basic"}
               </h3>
               <p className="text-gray-600">Account Level</p>
             </div>
