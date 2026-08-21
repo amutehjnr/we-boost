@@ -1,10 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { FaWallet, FaInfoCircle } from "react-icons/fa";
 import { useTheme } from "../../../context//ThemeContext";
+import API from "../../../lib/api";
 
 export default function Withdraw() {
   const { theme } = useTheme();
+  const navigate = useNavigate();
 
+  const [walletBalance, setWalletBalance] = useState(0);
   const [formData, setFormData] = useState({
     amount: "",
     bankName: "",
@@ -12,15 +16,42 @@ export default function Withdraw() {
     accountName: "",
   });
 
+  const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const handleSubmit = (e) => {
+  const fetchBalance = async () => {
+    try {
+      const res = await API.get("/users/stats");
+      setWalletBalance(res.data.data.walletBalance || 0);
+    } catch (err) {
+      console.error("Error fetching wallet balance:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchBalance();
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // You’ll replace this with your Firebase or backend call
-    if (formData.amount && formData.bankName && formData.accountNumber && formData.accountName) {
+    setSubmitting(true);
+    try {
+      await API.post("/withdrawals", {
+        amount: parseFloat(formData.amount),
+        bankName: formData.bankName,
+        accountNumber: formData.accountNumber,
+        accountName: formData.accountName,
+      });
+
       setSuccess(true);
       setTimeout(() => setSuccess(false), 4000);
       setFormData({ amount: "", bankName: "", accountNumber: "", accountName: "" });
+      fetchBalance();
+    } catch (err) {
+      console.error("Error submitting withdrawal:", err);
+      alert(err?.response?.data?.message || "Failed to submit withdrawal request.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -48,11 +79,14 @@ export default function Withdraw() {
           <div>
             <p className="text-gray-500 dark:text-gray-400 text-sm">Wallet Balance</p>
             <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-              ₦12,400.00
+              ₦{Number(walletBalance).toLocaleString()}
             </h2>
           </div>
         </div>
-        <button className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-2 rounded-lg transition">
+        <button
+          onClick={() => navigate("/dashboard/add-funds")}
+          className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-2 rounded-lg transition"
+        >
           Add Funds
         </button>
       </div>
@@ -74,6 +108,7 @@ export default function Withdraw() {
             value={formData.amount}
             onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
             required
+            min="1000"
             className={`w-full p-3 rounded-lg border outline-none ${
               theme === "dark"
                 ? "bg-black border-gray-700 text-gray-200"
@@ -146,9 +181,10 @@ export default function Withdraw() {
 
         <button
           type="submit"
-          className="w-full py-3 rounded-md font-semibold text-lg bg-gradient-to-r from-red-600 to-red-800 hover:from-red-700 hover:to-red-900 text-white shadow-lg hover:shadow-red-700/30 transition-all"
+          disabled={submitting}
+          className="w-full py-3 rounded-md font-semibold text-lg bg-gradient-to-r from-red-600 to-red-800 hover:from-red-700 hover:to-red-900 text-white shadow-lg hover:shadow-red-700/30 transition-all disabled:opacity-60"
         >
-          Withdraw Funds
+          {submitting ? "Submitting..." : "Withdraw Funds"}
         </button>
 
         {success && (

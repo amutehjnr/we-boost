@@ -1,87 +1,63 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { FaWallet, FaArrowUp, FaArrowDown, FaClock } from "react-icons/fa";
 import { useTheme } from "../../../context/ThemeContext";
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-} from "recharts";
+import API from "../../../lib/api";
 
 export default function Earnings() {
   const { theme } = useTheme();
+  const [stats, setStats] = useState(null);
+  const [withdrawals, setWithdrawals] = useState([]);
 
-  // Sample earnings data
-  const data = [
-    { month: "Jan", earnings: 3200 },
-    { month: "Feb", earnings: 4100 },
-    { month: "Mar", earnings: 3900 },
-    { month: "Apr", earnings: 4500 },
-    { month: "May", earnings: 5200 },
-    { month: "Jun", earnings: 6100 },
-  ];
+  useEffect(() => {
+    API.get("/users/stats")
+      .then((res) => setStats(res.data.data))
+      .catch((err) => console.error("Error fetching stats:", err));
 
-  const stats = [
+    API.get("/withdrawals?limit=10")
+      .then((res) => setWithdrawals(res.data.data || []))
+      .catch((err) => console.error("Error fetching withdrawals:", err));
+  }, []);
+
+  const pending = withdrawals
+    .filter((w) => w.status === "Pending")
+    .reduce((sum, w) => sum + Number(w.amount || 0), 0);
+
+  const summaryCards = [
     {
       icon: <FaWallet />,
       label: "Total Earnings",
-      value: "₦32,400",
+      value: `₦${Number(stats?.totalEarnings || 0).toLocaleString()}`,
       color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
     },
     {
       icon: <FaArrowDown />,
       label: "Withdrawn",
-      value: "₦21,000",
+      value: `₦${Number(stats?.totalWithdrawn || 0).toLocaleString()}`,
       color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
     },
     {
       icon: <FaClock />,
       label: "Pending",
-      value: "₦4,800",
+      value: `₦${pending.toLocaleString()}`,
       color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
     },
     {
       icon: <FaArrowUp />,
       label: "Available Balance",
-      value: "₦6,600",
+      value: `₦${Number(stats?.walletBalance || 0).toLocaleString()}`,
       color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-    },
-  ];
-
-  const transactions = [
-    {
-      id: 1,
-      date: "Oct 20, 2025",
-      type: "Task Reward (Instagram Follow)",
-      amount: "₦50",
-      status: "Completed",
-    },
-    {
-      id: 2,
-      date: "Oct 21, 2025",
-      type: "Withdrawal",
-      amount: "-₦5,000",
-      status: "Processed",
-    },
-    {
-      id: 3,
-      date: "Oct 22, 2025",
-      type: "Task Reward (TikTok Like)",
-      amount: "₦25",
-      status: "Pending",
     },
   ];
 
   const statusColor = (status) => {
     switch (status) {
       case "Completed":
-      case "Processed":
         return "text-green-500 bg-green-100 dark:bg-green-900/30";
       case "Pending":
         return "text-yellow-500 bg-yellow-100 dark:bg-yellow-900/30";
+      case "Rejected":
+      case "Cancelled":
+        return "text-red-500 bg-red-100 dark:bg-red-900/30";
       default:
         return "text-gray-500 bg-gray-100 dark:bg-gray-800";
     }
@@ -104,7 +80,7 @@ export default function Earnings() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
-        {stats.map((item, i) => (
+        {summaryCards.map((item, i) => (
           <div
             key={i}
             className={`flex items-center gap-4 p-5 rounded-2xl shadow-md dark:shadow-none ${item.color}`}
@@ -118,55 +94,7 @@ export default function Earnings() {
         ))}
       </div>
 
-      {/* Earnings Chart */}
-      <div
-        className={`rounded-2xl p-6 mb-10 shadow-md border ${
-          theme === "dark"
-            ? "bg-[#181818] border-gray-700"
-            : "bg-white border-gray-200"
-        }`}
-      >
-        <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">
-          Monthly Earnings Overview
-        </h2>
-        <ResponsiveContainer width="100%" height={250}>
-          <AreaChart data={data}>
-            <defs>
-              <linearGradient id="colorEarnings" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="#ef4444"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="#ef4444"
-                  stopOpacity={0}
-                />
-              </linearGradient>
-            </defs>
-            <XAxis dataKey="month" stroke={theme === "dark" ? "#9CA3AF" : "#6B7280"} />
-            <YAxis stroke={theme === "dark" ? "#9CA3AF" : "#6B7280"} />
-            <CartesianGrid strokeDasharray="3 3" stroke={theme === "dark" ? "#333" : "#E5E7EB"} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: theme === "dark" ? "#181818" : "#fff",
-                color: theme === "dark" ? "#E5E7EB" : "#111",
-                borderRadius: "8px",
-              }}
-            />
-            <Area
-              type="monotone"
-              dataKey="earnings"
-              stroke="#ef4444"
-              fillOpacity={1}
-              fill="url(#colorEarnings)"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Transactions Table */}
+      {/* Withdrawals Table */}
       <div
         className={`rounded-2xl shadow-md border overflow-x-auto ${
           theme === "dark"
@@ -175,7 +103,7 @@ export default function Earnings() {
         }`}
       >
         <h2 className="text-lg font-bold p-6 border-b dark:border-gray-700 text-gray-800 dark:text-gray-200">
-          Recent Transactions
+          Recent Withdrawals
         </h2>
         <table className="w-full text-sm md:text-base text-left">
           <thead
@@ -185,37 +113,40 @@ export default function Earnings() {
           >
             <tr>
               <th className="py-4 px-6">Date</th>
-              <th className="py-4 px-6">Type</th>
+              <th className="py-4 px-6">Bank</th>
               <th className="py-4 px-6">Amount</th>
               <th className="py-4 px-6">Status</th>
             </tr>
           </thead>
           <tbody>
-            {transactions.map((tx) => (
+            {withdrawals.length === 0 && (
+              <tr>
+                <td colSpan={4} className="py-6 px-6 text-center text-gray-500 dark:text-gray-400">
+                  No withdrawals yet.
+                </td>
+              </tr>
+            )}
+            {withdrawals.map((w) => (
               <tr
-                key={tx.id}
+                key={w.id}
                 className={`border-b transition-all duration-200 ${
                   theme === "dark"
                     ? "border-gray-700 hover:bg-[#202020]"
                     : "border-gray-200 hover:bg-gray-100"
                 }`}
               >
-                <td className="py-4 px-6">{tx.date}</td>
-                <td className="py-4 px-6">{tx.type}</td>
-                <td
-                  className={`py-4 px-6 font-semibold ${
-                    tx.amount.startsWith("-") ? "text-red-500" : "text-green-600"
-                  }`}
-                >
-                  {tx.amount}
+                <td className="py-4 px-6">
+                  {w.createdAt ? new Date(w.createdAt).toDateString() : ""}
+                </td>
+                <td className="py-4 px-6">{w.bankName}</td>
+                <td className="py-4 px-6 font-semibold text-red-500">
+                  -₦{Number(w.amount).toLocaleString()}
                 </td>
                 <td className="py-4 px-6">
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColor(
-                      tx.status
-                    )}`}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColor(w.status)}`}
                   >
-                    {tx.status}
+                    {w.status}
                   </span>
                 </td>
               </tr>

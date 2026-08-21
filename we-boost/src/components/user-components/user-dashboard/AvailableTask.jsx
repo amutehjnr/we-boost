@@ -5,27 +5,36 @@ import API from "../../../lib/api";
 export default function AvailableTask() {
   const { theme } = useTheme();
   const [tasks, setTasks] = useState([]);
-  
+  const [startingId, setStartingId] = useState(null);
+
+  const fetchTasks = async () => {
+    try {
+      const res = await API.get("/tasks/available?limit=20");
+      setTasks(res.data.data || []);
+    } catch (err) {
+      console.error("Error fetching tasks:", err);
+      setTasks([]);
+    }
+  };
 
   useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const res = await API.get("/tasks/my-tasks?limit=10");
-
-        setTasks(res.data.tasks || res.data.data || []);
-      } catch (err) {
-        console.error("Error fetching tasks:", err);
-
-        setTasks([]);
-      } 
-    };
-
     fetchTasks();
   }, []);
 
-  
-
-  
+  const handleStart = async (taskId) => {
+    setStartingId(taskId);
+    try {
+      await API.post(`/tasks/${taskId}/start`);
+      alert("Task started! Find it under My Tasks.");
+      // Remove it from the available list since it's now claimed
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    } catch (err) {
+      console.error("Error starting task:", err);
+      alert(err?.response?.data?.message || "Failed to start task.");
+    } finally {
+      setStartingId(null);
+    }
+  };
 
   return (
     <div
@@ -42,6 +51,12 @@ export default function AvailableTask() {
         Choose a task below, complete it, and get paid instantly.
       </p>
 
+      {tasks.length === 0 && (
+        <p className="text-gray-500 dark:text-gray-400">
+          No tasks available right now — link a social account to unlock matching tasks, or check back soon.
+        </p>
+      )}
+
       {/* Task Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {tasks.map((task) => (
@@ -54,28 +69,28 @@ export default function AvailableTask() {
             }`}
           >
             <div className="flex items-center gap-4 mb-4">
-              {task.icon}
               <div>
                 <h2 className="text-lg font-bold">{task.platform}</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {task.type} Task
+                  {task.taskType} Task
                 </p>
               </div>
             </div>
 
             <p className="text-sm mb-4 text-gray-600 dark:text-gray-300">
-              {task.description}
+              {task.order?.service || task.description || ""}
             </p>
 
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-red-600">{task.reward
-                  ? `₦${Number(task.reward).toLocaleString()}`
-                  : "₦0"}
+              <span className="font-semibold text-red-600">
+                {task.reward ? `₦${Number(task.reward).toLocaleString()}` : "₦0"}
               </span>
               <button
-                className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition duration-300"
+                onClick={() => handleStart(task.id)}
+                disabled={startingId === task.id}
+                className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition duration-300 disabled:opacity-60"
               >
-                Start Task
+                {startingId === task.id ? "Starting..." : "Start Task"}
               </button>
             </div>
           </div>
