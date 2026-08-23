@@ -1,230 +1,168 @@
-import React, { useState, useEffect } from 'react';
-import './index.css';
-import { Routes, Route, useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, signOut } from "firebase/auth";
-import ProtectedRoute from './route-module/ProtectedRoute';
-import { auth } from "./firebase";
-import { useAuthState } from 'react-firebase-hooks/auth';
-import Home from './components/Home';
-import SignUp from './components/SignUp';
-import SignIn from './components/SignIn';
-import Services from './components/Services';
-import Pricing from './components/user-components/Pricing';
-import HowItWorks from './components/HowItWorks';
-import Faq from './components/Faq';
-import Support from './components/Support';
-import Profile from './components/Profile';
-import DashboardLayout from './components/client-dashboard/DashboardLayout';
-import Dashboard from './components/Dashboard';
-import NewOrder from './components/client-dashboard/NewOrder';
-import MyOrders from './components/client-dashboard/MyOrders';
-import VerifyTasks from './components/client-dashboard/VerifyTasks';
-import AddFunds from './components/client-dashboard/Addfunds';
-import FundsHistory from './components/client-dashboard/FundsHistory';
-import UserDashboardHome from './components/user-components/user-dashboard/UserDahboardHome';
-import UserDashboardLayout from './components/user-components/user-dashboard/UserDashboardLayout';
-import AvailableTask from './components/user-components/user-dashboard/AvailableTask';
-import MyTasks from './components/user-components/user-dashboard/MyTask';
-import Earnings from './components/user-components/user-dashboard/Earnings';
-import LinkedAccounts from './components/user-components/user-dashboard/LinkedAcc';
-import Withdraw from './components/user-components/user-dashboard/Withdraw';
-import Settings from './components/user-components/user-dashboard/Settings';
-import API from './lib/api';
+import React, { useEffect, useState } from "react";
+import API from "../../../lib/api";
+import { useTheme } from "../../../context/ThemeContext";
 
-function App() {
-  const navigate = useNavigate();
+export default function MyTasks() {
+  const { theme } = useTheme();
+  const [tasks, setTasks] = useState([]);
+  const [busyId, setBusyId] = useState(null);
 
-  const [email, setEmail] = useState("");   // State for email input
-  const [password, setPassword] = useState("");   // State for password input
-  const [error, setError] = useState("");   // State for error messages
-  const [darkMode, setDarkMode] = useState(false); // State for dark mode toggle
-  const [loading, setLoading] = useState(false);  // State for loading indicator
-  const [isClient, setIsClient] = useState(true); // State for client mode
+  const statusColor = (status) => {
+    switch (status) {
+      case "Completed":
+        return "text-green-500 bg-green-100 dark:bg-green-900/30";
+      case "Pending Verification":
+        return "text-yellow-500 bg-yellow-100 dark:bg-yellow-900/30";
+      case "Assigned":
+      case "In Progress":
+        return "text-blue-500 bg-blue-100 dark:bg-blue-900/30";
+      case "Rejected":
+        return "text-red-500 bg-red-100 dark:bg-red-900/30";
+      default:
+        return "text-gray-500 bg-gray-100 dark:bg-gray-800";
+    }
+  };
 
-  const [user] = useAuthState(auth); // Get current user from Firebase Auth
-
- // 🧩 Validation and login handler
-  const handleSignIn = async (e) => {
-    e.preventDefault();
-    setError("");
-
-    // Basic validation
-    if (!email) return setError("Email is required.");
-    if (!/\S+@\S+\.\S+/.test(email)) return setError("Please enter a valid email.");
-    if (password.length < 8)
-      return setError("Password must be at least 8 characters long.");
-
+  const fetchTasks = async () => {
     try {
-      setLoading(true);
-      await signInWithEmailAndPassword(auth, email, password);
-      // ✅ Redirect to dashboard after successful login
-      navigate(isClient ? "/dashboard" : "/user-dashboard");
-    } catch (error) {
-      // 🧾 Handle Firebase auth errors nicely
-      if (error.code === "auth/invalid-credential") {
-        setError("Invalid email or password. Please try again.");
-      } else if (error.code === "auth/user-not-found") {
-        setError("No user found with this email.");
-      } else if (error.code === "auth/wrong-password") {
-        setError("Incorrect password. Try again.");
-      } else {
-        setError("Something went wrong. Please try again later.");
-      }
+      const res = await API.get("/tasks/my-tasks?limit=20");
+      setTasks(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+      setTasks([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const handleSubmitProof = async (taskId) => {
+    const proofUrl = prompt("Paste a link proving you completed this task (screenshot, post URL, etc.):");
+    if (!proofUrl) return;
+
+    setBusyId(taskId);
+    try {
+      await API.post(`/tasks/${taskId}/submit`, { proofUrl });
+      fetchTasks();
+    } catch (err) {
+      console.error(err);
+      alert(err?.response?.data?.message || "Failed to submit proof.");
     } finally {
-      setLoading(false);
+      setBusyId(null);
     }
   };
 
-  // Function to handle logout
-  const handleLogout = async () => {
-    await signOut(auth);
-  };
+  const handleCancel = async (taskId) => {
+    if (!window.confirm("Cancel this task and release it back to the pool?")) return;
 
-  // When darkMode changes, apply/remove `dark` class on <html>
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [darkMode]);
-
-  // Load the real account type from the backend once Firebase confirms who's
-  // signed in — isClient must reflect the database, not just default to true.
-  useEffect(() => {
-    if (!user) return;
-
-    API.get("/users/profile")
-      .then((res) => {
-        setIsClient(!!res.data.data.isClient);
-      })
-      .catch((error) => {
-        console.error("Failed to load profile for mode:", error);
-      });
-  }, [user]);
-
-  // Persist the mode switch to the backend so it survives reloads and future
-  // logins, then update local state from the actual saved value and route
-  // to the matching dashboard.
-  async function userModeToggle() {
+    setBusyId(taskId);
     try {
-      const res = await API.post("/users/toggle-mode");
-      const nowIsClient = !!res.data.data.isClient;
-      setIsClient(nowIsClient);
-      navigate(nowIsClient ? "/dashboard" : "/user-dashboard");
-    } catch (error) {
-      console.error("Failed to toggle mode:", error);
+      await API.put(`/tasks/${taskId}/cancel`);
+      fetchTasks();
+    } catch (err) {
+      console.error(err);
+      alert(err?.response?.data?.message || "Failed to cancel task.");
+    } finally {
+      setBusyId(null);
     }
-  }
+  };
 
   return (
-    <>
-      <Routes>
-        <Route path='/' element={<Home handleLogout={handleLogout} user={user} isClient={isClient} userModeToggle={userModeToggle} />} />
-        <Route path='/signup' element={<SignUp />} />
-        <Route path='/signin' element={<SignIn
-          email={email}
-          setEmail={setEmail}
-          password={password}
-          setPassword={setPassword}
-          error={error}
-          handleSignIn={handleSignIn}
-          loading={loading}
-        />} />
-        <Route path='/services' element={<Services handleLogout={handleLogout} user={user} isClient={isClient} userModeToggle={userModeToggle} />} />
-        <Route path='/pricing' element={<Pricing handleLogout={handleLogout} user={user} isClient={isClient} userModeToggle={userModeToggle} />} />
-        <Route path='/how-it-works' element={<HowItWorks handleLogout={handleLogout} user={user} isClient={isClient} userModeToggle={userModeToggle} />} />
-        <Route path='/faq' element={<Faq handleLogout={handleLogout} user={user} isClient={isClient} userModeToggle={userModeToggle} />} />
-        <Route path='/support' element={<Support handleLogout={handleLogout} user={user} isClient={isClient} userModeToggle={userModeToggle} />} />
-        <Route path='/profile' element={
-            <ProtectedRoute>
-              <Profile isClient={isClient} userModeToggle={userModeToggle} />
-            </ProtectedRoute>
-          }
-        />
+    <div
+      className={`transition-colors duration-300 ${
+        theme === "dark"
+          ? "bg-[#121212] text-gray-200"
+          : "bg-gray-50 text-gray-800"
+      } min-h-screen p-6 rounded-2xl`}
+    >
+      <h1 className="text-2xl font-bold mb-4">
+        My <span className="text-red-600">Tasks</span> 📋
+      </h1>
+      <p className="text-gray-500 dark:text-gray-400 mb-8">
+        Track your task history, progress, and payments in one place.
+      </p>
 
-        {/* Client Dashboard Routes */}
-        <Route path='/dashboard-layout' element={
-          <ProtectedRoute>
-            <DashboardLayout handleLogout={handleLogout} user={user} isClient={isClient} userModeToggle={userModeToggle} />
-          </ProtectedRoute>
-        } />
-        <Route path='/dashboard' element={
-          <ProtectedRoute>
-            <Dashboard user={user} handleLogout={handleLogout} isClient={isClient} userModeToggle={userModeToggle} />
-          </ProtectedRoute>
-        } />
-        <Route path='/dashboard/new-order' element={
-          <ProtectedRoute>
-            <NewOrder darkMode={darkMode} setDarkMode={setDarkMode} isClient={isClient} userModeToggle={userModeToggle} />
-          </ProtectedRoute>
-        } />
-        <Route path='/dashboard/my-orders' element={
-          <ProtectedRoute>
-            <MyOrders isClient={isClient} userModeToggle={userModeToggle} />
-          </ProtectedRoute>
-        } />
-        <Route path='/dashboard/verify-tasks' element={
-          <ProtectedRoute>
-            <VerifyTasks isClient={isClient} userModeToggle={userModeToggle} />
-          </ProtectedRoute>
-        } />
-        <Route path='/dashboard/add-funds' element={
-          <ProtectedRoute>
-            <AddFunds isClient={isClient} userModeToggle={userModeToggle} />
-          </ProtectedRoute>
-        } />
-        <Route path='/dashboard/fund-history' element={
-          <ProtectedRoute>
-            <FundsHistory isClient={isClient} userModeToggle={userModeToggle} />
-          </ProtectedRoute>
-        } />
-
-        {/* User Dashboard Routes */}
-        <Route path='/user-dashboard' element={
-          <ProtectedRoute>
-            <UserDashboardLayout isClient={isClient} userModeToggle={userModeToggle} />
-          </ProtectedRoute>
-        }>
-          <Route index element={
-            <ProtectedRoute>
-              <UserDashboardHome isClient={isClient} userModeToggle={userModeToggle} />
-            </ProtectedRoute>
-          } />
-          <Route path='/user-dashboard/tasks' element={
-            <ProtectedRoute>
-              <AvailableTask isClient={isClient} userModeToggle={userModeToggle} />
-            </ProtectedRoute>
-          } />
-          <Route path='/user-dashboard/my-tasks' element={
-            <ProtectedRoute>
-              <MyTasks isClient={isClient} userModeToggle={userModeToggle} />
-            </ProtectedRoute>
-          } />
-          <Route path='/user-dashboard/earnings' element={
-            <ProtectedRoute>
-              <Earnings isClient={isClient} userModeToggle={userModeToggle} />
-            </ProtectedRoute>
-          } />
-          <Route path='/user-dashboard/accounts' element={
-            <ProtectedRoute>
-              <LinkedAccounts isClient={isClient} userModeToggle={userModeToggle} />
-            </ProtectedRoute>
-          } />
-          <Route path='/user-dashboard/withdraw' element={
-            <ProtectedRoute>
-              <Withdraw isClient={isClient} userModeToggle={userModeToggle} />
-            </ProtectedRoute>
-          } />
-          <Route path='/user-dashboard/settings' element={
-            <ProtectedRoute>
-              <Settings isClient={isClient} userModeToggle={userModeToggle} />
-            </ProtectedRoute>
-          } />
-        </Route>
-      </Routes>
-    </>
+      {/* Tasks Table */}
+      <div
+        className={`rounded-2xl shadow-md border overflow-x-auto ${
+          theme === "dark"
+            ? "bg-[#181818] border-gray-700"
+            : "bg-white border-gray-200"
+        }`}
+      >
+        <table className="w-full text-sm md:text-base text-left">
+          <thead
+            className={`text-gray-600 dark:text-gray-400 border-b ${
+              theme === "dark" ? "border-gray-700" : "border-gray-200"
+            }`}
+          >
+            <tr>
+              <th className="py-4 px-6">Platform</th>
+              <th className="py-4 px-6">Task Type</th>
+              <th className="py-4 px-6">Reward</th>
+              <th className="py-4 px-6">Date</th>
+              <th className="py-4 px-6">Status</th>
+              <th className="py-4 px-6">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tasks.length === 0 && (
+              <tr>
+                <td colSpan={6} className="py-6 px-6 text-center text-gray-500 dark:text-gray-400">
+                  You haven't started any tasks yet.
+                </td>
+              </tr>
+            )}
+            {tasks.map((task) => (
+              <tr
+                key={task.id}
+                className={`border-b transition-all duration-200 ${
+                  theme === "dark"
+                    ? "border-gray-700 hover:bg-[#202020]"
+                    : "border-gray-200 hover:bg-gray-100"
+                }`}
+              >
+                <td className="py-4 px-6 font-medium">{task.platform}</td>
+                <td className="py-4 px-6">{task.taskType}</td>
+                <td className="py-4 px-6 font-semibold text-red-600">
+                  ₦{Number(task.reward).toLocaleString()}
+                </td>
+                <td className="py-4 px-6 text-gray-500 dark:text-gray-400">
+                  {task.createdAt ? new Date(task.createdAt).toDateString() : ""}
+                </td>
+                <td className="py-4 px-6">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColor(task.status)}`}
+                  >
+                    {task.status}
+                  </span>
+                </td>
+                <td className="py-4 px-6">
+                  {["Assigned", "In Progress"].includes(task.status) && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleSubmitProof(task.id)}
+                        disabled={busyId === task.id}
+                        className="bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition disabled:opacity-60"
+                      >
+                        Submit Proof
+                      </button>
+                      <button
+                        onClick={() => handleCancel(task.id)}
+                        disabled={busyId === task.id}
+                        className="text-xs text-gray-500 hover:text-red-600 px-2"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
-
-export default App;
