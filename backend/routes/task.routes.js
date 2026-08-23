@@ -6,6 +6,7 @@ const { verifyJWT, isTaskUser, authorize } = require('../middleware/auth');
 router.get('/available', verifyJWT, isTaskUser, taskController.getAvailableTasks);
 router.get('/my-tasks', verifyJWT, taskController.getMyTasks);
 router.get('/stats', verifyJWT, taskController.getTaskStats);
+router.get('/pending-verification', verifyJWT, taskController.getPendingVerificationTasks);
 router.post('/:id/start', verifyJWT, isTaskUser, taskController.startTask);
 router.post('/:id/submit', verifyJWT, isTaskUser, taskController.submitTask);
 router.post('/:id/verify', verifyJWT, taskController.verifyTask);

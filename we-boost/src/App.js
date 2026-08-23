@@ -18,6 +18,7 @@ import DashboardLayout from './components/client-dashboard/DashboardLayout';
 import Dashboard from './components/Dashboard';
 import NewOrder from './components/client-dashboard/NewOrder';
 import MyOrders from './components/client-dashboard/MyOrders';
+import VerifyTasks from './components/client-dashboard/VerifyTasks';
 import AddFunds from './components/client-dashboard/Addfunds';
 import FundsHistory from './components/client-dashboard/FundsHistory';
 import UserDashboardHome from './components/user-components/user-dashboard/UserDahboardHome';
@@ -161,6 +162,11 @@ function App() {
         <Route path='/dashboard/my-orders' element={
           <ProtectedRoute>
             <MyOrders isClient={isClient} userModeToggle={userModeToggle} />
+          </ProtectedRoute>
+        } />
+        <Route path='/dashboard/verify-tasks' element={
+          <ProtectedRoute>
+            <VerifyTasks isClient={isClient} userModeToggle={userModeToggle} />
           </ProtectedRoute>
         } />
         <Route path='/dashboard/add-funds' element={

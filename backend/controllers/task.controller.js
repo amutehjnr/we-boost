@@ -277,6 +277,55 @@ exports.submitTask = async (req, res) => {
   }
 };
 
+// @desc    Get tasks pending verification for the client's own orders
+// @route   GET /api/tasks/pending-verification
+// @access  Private (Client only)
+exports.getPendingVerificationTasks = async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const { count, rows: tasks } = await Task.findAndCountAll({
+      where: {
+        clientId: req.user.id,
+        status: 'Pending Verification'
+      },
+      limit: parseInt(limit),
+      offset,
+      order: [['submittedAt', 'ASC']],
+      include: [
+        {
+          model: Order,
+          as: 'order',
+          attributes: ['orderId', 'platform', 'service']
+        },
+        {
+          model: User,
+          as: 'assignedUser',
+          attributes: ['id', 'fullName', 'email']
+        }
+      ]
+    });
+
+    res.status(200).json({
+      success: true,
+      data: tasks,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        pages: Math.ceil(count / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Get pending verification tasks error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching tasks pending verification',
+      error: error.message
+    });
+  }
+};
+
 // @desc    Verify task (Admin/Client)
 // @route   POST /api/tasks/:id/verify
 // @access  Private (Admin/Client)
