@@ -12,6 +12,7 @@ import {
   FaCogs,
   FaHeadset,
   FaUser,
+  FaClipboardCheck,
 } from "react-icons/fa";
 
 export default function Sidebar({ sidebarOpen }) {
@@ -19,6 +20,7 @@ export default function Sidebar({ sidebarOpen }) {
     { name: "Home", path: "/dashboard", icon: <FaHome /> },
     { name: "New Order", path: "/dashboard/new-order", icon: <FaPlusCircle /> },
     { name: "My Orders", path: "/dashboard/my-orders", icon: <FaList /> },
+    { name: "Verify Tasks", path: "/dashboard/verify-tasks", icon: <FaClipboardCheck /> },
     { name: "Add Funds", path: "/dashboard/add-funds", icon: <FaMoneyBillWave /> },
     { name: "Funds History", path: "/dashboard/fund-history", icon: <FaHistory /> },
     { name: "Services", path: "/services", icon: <FaCogs /> },
