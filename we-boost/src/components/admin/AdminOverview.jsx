@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FaUsers, FaShoppingCart, FaMoneyBillWave, FaHourglassHalf, FaWallet } from "react-icons/fa";
+import { FaUsers, FaShoppingCart, FaHourglassHalf, FaWallet } from "react-icons/fa";
 import AdminLayout from "./AdminLayout";
 import API from "../../lib/api";
 
