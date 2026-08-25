@@ -9,6 +9,7 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import Home from './components/Home';
 import SignUp from './components/SignUp';
 import SignIn from './components/SignIn';
+import AdminLogin from './components/AdminLogin';
 import Services from './components/Services';
 import Pricing from './components/user-components/Pricing';
 import HowItWorks from './components/HowItWorks';
@@ -135,6 +136,7 @@ function App() {
           handleSignIn={handleSignIn}
           loading={loading}
         />} />
+        <Route path='/admin-login' element={<AdminLogin />} />
         <Route path='/services' element={<Services handleLogout={handleLogout} user={user} isClient={isClient} userModeToggle={userModeToggle} />} />
         <Route path='/pricing' element={<Pricing handleLogout={handleLogout} user={user} isClient={isClient} userModeToggle={userModeToggle} />} />
         <Route path='/how-it-works' element={<HowItWorks handleLogout={handleLogout} user={user} isClient={isClient} userModeToggle={userModeToggle} />} />
