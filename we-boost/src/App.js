@@ -3,6 +3,7 @@ import './index.css';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import ProtectedRoute from './route-module/ProtectedRoute';
+import AdminRoute from './route-module/AdminRoute';
 import { auth } from "./firebase";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import Home from './components/Home';
@@ -19,6 +20,9 @@ import Dashboard from './components/Dashboard';
 import NewOrder from './components/client-dashboard/NewOrder';
 import MyOrders from './components/client-dashboard/MyOrders';
 import VerifyTasks from './components/client-dashboard/VerifyTasks';
+import AdminOverview from './components/admin/AdminOverview';
+import AdminWithdrawals from './components/admin/AdminWithdrawals';
+import AdminUsers from './components/admin/AdminUsers';
 import AddFunds from './components/client-dashboard/Addfunds';
 import FundsHistory from './components/client-dashboard/FundsHistory';
 import UserDashboardHome from './components/user-components/user-dashboard/UserDahboardHome';
@@ -168,6 +172,21 @@ function App() {
           <ProtectedRoute>
             <VerifyTasks isClient={isClient} userModeToggle={userModeToggle} />
           </ProtectedRoute>
+        } />
+        <Route path='/admin' element={
+          <AdminRoute>
+            <AdminOverview />
+          </AdminRoute>
+        } />
+        <Route path='/admin/withdrawals' element={
+          <AdminRoute>
+            <AdminWithdrawals />
+          </AdminRoute>
+        } />
+        <Route path='/admin/users' element={
+          <AdminRoute>
+            <AdminUsers />
+          </AdminRoute>
         } />
         <Route path='/dashboard/add-funds' element={
           <ProtectedRoute>

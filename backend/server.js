@@ -16,6 +16,7 @@ const taskRoutes = require('./routes/task.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const withdrawalRoutes = require('./routes/withdrawal.routes');
 const platformRoutes = require('./routes/platform.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
 
@@ -105,6 +106,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/withdrawals', withdrawalRoutes);
 app.use('/api/platforms', platformRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

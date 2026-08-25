@@ -42,9 +42,12 @@ router.put('/profile', verifyJWT, async (req, res) => {
 router.post('/toggle-mode', verifyJWT, async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id);
+    const nowIsClient = !user.isClient;
     await user.update({
-      isClient: !user.isClient,
-      role: user.isClient ? 'user' : 'client'
+      isClient: nowIsClient,
+      // Preserve admin role — the client/user mode toggle is a separate
+      // concern from admin privileges.
+      role: user.role === 'admin' ? 'admin' : (nowIsClient ? 'client' : 'user')
     });
     res.json({ success: true, data: user });
   } catch (error) {

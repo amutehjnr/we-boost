@@ -52,6 +52,34 @@ router.post('/', verifyJWT, async (req, res) => {
   }
 });
 
+// Admin: Get ALL withdrawals across every user
+router.get('/admin/all', verifyJWT, authorize('admin'), async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status } = req.query;
+    const offset = (page - 1) * limit;
+    const where = {};
+    if (status) where.status = status;
+
+    const { count, rows } = await Withdrawal.findAndCountAll({
+      where,
+      limit: parseInt(limit),
+      offset,
+      order: [['createdAt', 'DESC']],
+      include: [
+        { model: User, as: 'user', attributes: ['id', 'fullName', 'email'] }
+      ]
+    });
+
+    res.json({
+      success: true,
+      data: rows,
+      pagination: { total: count, page: parseInt(page), pages: Math.ceil(count / limit) }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // Get user withdrawals
 router.get('/', verifyJWT, async (req, res) => {
   try {
