@@ -1,11 +1,19 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FaChartBar, FaUsers, FaMoneyCheckAlt, FaShoppingCart, FaTasks, FaCreditCard } from "react-icons/fa";
+import { FaChartBar, FaUsers, FaMoneyCheckAlt, FaShoppingCart, FaTasks, FaCreditCard, FaSignOutAlt } from "react-icons/fa";
+import { signOut } from "firebase/auth";
+import { auth } from "../../firebase";
 import { useTheme } from "../../context/ThemeContext";
 
 export default function AdminLayout({ children }) {
   const { theme } = useTheme();
   const location = useLocation();
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    localStorage.removeItem("token");
+    window.location.href = "/admin-login";
+  };
 
   const links = [
     { path: "/admin", label: "Overview", icon: <FaChartBar /> },
@@ -35,6 +43,13 @@ export default function AdminLayout({ children }) {
             </Link>
           ))}
         </nav>
+
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2 mt-6 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition w-full"
+        >
+          <FaSignOutAlt /> Logout
+        </button>
       </aside>
       <main className="flex-1 p-6 md:p-8">{children}</main>
     </div>
