@@ -83,6 +83,9 @@ export default function VerifyTasks({ isClient, userModeToggle }) {
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     Order: {task.order?.orderId} &middot; Submitted by: {task.assignedUser?.fullName || "Unknown"} ({task.assignedUser?.email})
                   </p>
+                  <p className="mt-2 text-sm">
+                    Was asked to {task.taskType}: <span className="font-medium break-all">{task.targetUrl}</span>
+                  </p>
                   {task.proofUrl && (
                     <p className="mt-2 text-sm">
                       Proof link:{" "}

@@ -100,6 +100,7 @@ export default function MyTasks() {
             <tr>
               <th className="py-4 px-6">Platform</th>
               <th className="py-4 px-6">Task Type</th>
+              <th className="py-4 px-6">Target</th>
               <th className="py-4 px-6">Reward</th>
               <th className="py-4 px-6">Date</th>
               <th className="py-4 px-6">Status</th>
@@ -109,7 +110,7 @@ export default function MyTasks() {
           <tbody>
             {tasks.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-6 px-6 text-center text-gray-500 dark:text-gray-400">
+                <td colSpan={7} className="py-6 px-6 text-center text-gray-500 dark:text-gray-400">
                   You haven't started any tasks yet.
                 </td>
               </tr>
@@ -125,6 +126,9 @@ export default function MyTasks() {
               >
                 <td className="py-4 px-6 font-medium">{task.platform}</td>
                 <td className="py-4 px-6">{task.taskType}</td>
+                <td className="py-4 px-6 max-w-[200px] truncate" title={task.targetUrl}>
+                  {task.targetUrl}
+                </td>
                 <td className="py-4 px-6 font-semibold text-red-600">
                   ₦{Number(task.reward).toLocaleString()}
                 </td>

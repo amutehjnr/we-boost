@@ -10,6 +10,29 @@ const SERVICE_RATES = {
   High: parseFloat(process.env.SERVICE_RATE_HIGH) || 50000
 };
 
+// The order form sends generic category names (plural, platform-agnostic).
+// This maps each one to the actual action a task-doer performs, per
+// platform, so the correct TASK_RATES entry is found and the task shows
+// the right instruction.
+const CATEGORY_TO_ACTION = (category, platform) => {
+  switch (category) {
+    case 'Followers':
+      return platform === 'YouTube' ? 'Subscribe' : 'Follow';
+    case 'Likes':
+      return 'Like';
+    case 'Views':
+      return 'View';
+    case 'Comments':
+      return 'Comment';
+    case 'Streams':
+      return 'Stream';
+    case 'Shares':
+      return platform === 'Twitter' ? 'Retweet' : 'Share';
+    default:
+      return category;
+  }
+};
+
 // Task reward rates (what users earn per action)
 const TASK_RATES = {
   Facebook: {
@@ -130,10 +153,14 @@ exports.createOrder = async (req, res) => {
       paidAt: new Date()
     }, { transaction });
 
-    // Create tasks for the order
-    const taskReward = TASK_RATES[platform]?.[category] || 10;
+    // Create tasks for the order — normalize the client-facing category
+    // (e.g. "Followers") into the actual action a task-doer performs
+    // (e.g. "Follow" or "Subscribe" on YouTube), so pricing and task
+    // instructions are both correct.
+    const actionType = CATEGORY_TO_ACTION(category, platform);
+    const taskReward = TASK_RATES[platform]?.[actionType] || 10;
     const numberOfTasks = Math.ceil(quantity);
-    
+
     // Create tasks in batches
     const tasks = [];
     for (let i = 0; i < numberOfTasks; i++) {
@@ -141,7 +168,7 @@ exports.createOrder = async (req, res) => {
         orderId: order.id,
         clientId: userId,
         platform,
-        taskType: category,
+        taskType: actionType,
         targetUrl,
         reward: taskReward,
         status: 'Available'

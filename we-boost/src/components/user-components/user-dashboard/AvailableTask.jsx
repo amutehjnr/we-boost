@@ -77,9 +77,12 @@ export default function AvailableTask() {
               </div>
             </div>
 
-            <p className="text-sm mb-4 text-gray-600 dark:text-gray-300">
-              {task.order?.service || task.description || ""}
-            </p>
+            <div className="mb-4 p-3 rounded-lg bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {task.taskType} this:
+              </p>
+              <p className="text-sm font-medium break-all">{task.targetUrl}</p>
+            </div>
 
             <div className="flex items-center justify-between">
               <span className="font-semibold text-red-600">
