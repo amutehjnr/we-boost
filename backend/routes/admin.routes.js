@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { User, Order, Withdrawal, Payment } = require('../models');
+const { User, Order, Withdrawal, Payment, Task } = require('../models');
 const { verifyJWT, authorize } = require('../middleware/auth');
 
 // Every route here requires a logged-in admin
@@ -95,6 +95,95 @@ router.put('/users/:id', async (req, res) => {
     res.json({ success: true, data: user });
   } catch (error) {
     console.error('Admin update user error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// List all orders platform-wide
+router.get('/orders', async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status } = req.query;
+    const offset = (page - 1) * limit;
+    const where = {};
+    if (status) where.status = status;
+
+    const { count, rows } = await Order.findAndCountAll({
+      where,
+      limit: parseInt(limit),
+      offset,
+      order: [['createdAt', 'DESC']],
+      include: [
+        { model: User, as: 'client', attributes: ['id', 'fullName', 'email'] }
+      ]
+    });
+
+    res.json({
+      success: true,
+      data: rows,
+      pagination: { total: count, page: parseInt(page), pages: Math.ceil(count / limit) }
+    });
+  } catch (error) {
+    console.error('Admin list orders error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// List all tasks platform-wide
+router.get('/tasks', async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status } = req.query;
+    const offset = (page - 1) * limit;
+    const where = {};
+    if (status) where.status = status;
+
+    const { count, rows } = await Task.findAndCountAll({
+      where,
+      limit: parseInt(limit),
+      offset,
+      order: [['createdAt', 'DESC']],
+      include: [
+        { model: Order, as: 'order', attributes: ['orderId'] },
+        { model: User, as: 'assignedUser', attributes: ['id', 'fullName', 'email'] },
+        { model: User, as: 'client', attributes: ['id', 'fullName', 'email'] }
+      ]
+    });
+
+    res.json({
+      success: true,
+      data: rows,
+      pagination: { total: count, page: parseInt(page), pages: Math.ceil(count / limit) }
+    });
+  } catch (error) {
+    console.error('Admin list tasks error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// List all payments platform-wide
+router.get('/payments', async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status } = req.query;
+    const offset = (page - 1) * limit;
+    const where = {};
+    if (status) where.status = status;
+
+    const { count, rows } = await Payment.findAndCountAll({
+      where,
+      limit: parseInt(limit),
+      offset,
+      order: [['createdAt', 'DESC']],
+      include: [
+        { model: User, as: 'user', attributes: ['id', 'fullName', 'email'] }
+      ]
+    });
+
+    res.json({
+      success: true,
+      data: rows,
+      pagination: { total: count, page: parseInt(page), pages: Math.ceil(count / limit) }
+    });
+  } catch (error) {
+    console.error('Admin list payments error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

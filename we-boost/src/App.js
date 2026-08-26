@@ -24,6 +24,9 @@ import VerifyTasks from './components/client-dashboard/VerifyTasks';
 import AdminOverview from './components/admin/AdminOverview';
 import AdminWithdrawals from './components/admin/AdminWithdrawals';
 import AdminUsers from './components/admin/AdminUsers';
+import AdminOrders from './components/admin/AdminOrders';
+import AdminTasks from './components/admin/AdminTasks';
+import AdminPayments from './components/admin/AdminPayments';
 import AddFunds from './components/client-dashboard/Addfunds';
 import FundsHistory from './components/client-dashboard/FundsHistory';
 import UserDashboardHome from './components/user-components/user-dashboard/UserDahboardHome';
@@ -188,6 +191,21 @@ function App() {
         <Route path='/admin/users' element={
           <AdminRoute>
             <AdminUsers />
+          </AdminRoute>
+        } />
+        <Route path='/admin/orders' element={
+          <AdminRoute>
+            <AdminOrders />
+          </AdminRoute>
+        } />
+        <Route path='/admin/tasks' element={
+          <AdminRoute>
+            <AdminTasks />
+          </AdminRoute>
+        } />
+        <Route path='/admin/payments' element={
+          <AdminRoute>
+            <AdminPayments />
           </AdminRoute>
         } />
         <Route path='/dashboard/add-funds' element={

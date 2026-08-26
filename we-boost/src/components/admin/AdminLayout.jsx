@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FaChartBar, FaUsers, FaMoneyCheckAlt } from "react-icons/fa";
+import { FaChartBar, FaUsers, FaMoneyCheckAlt, FaShoppingCart, FaTasks, FaCreditCard } from "react-icons/fa";
 import { useTheme } from "../../context/ThemeContext";
 
 export default function AdminLayout({ children }) {
@@ -9,6 +9,9 @@ export default function AdminLayout({ children }) {
 
   const links = [
     { path: "/admin", label: "Overview", icon: <FaChartBar /> },
+    { path: "/admin/orders", label: "Orders", icon: <FaShoppingCart /> },
+    { path: "/admin/tasks", label: "Tasks", icon: <FaTasks /> },
+    { path: "/admin/payments", label: "Payments", icon: <FaCreditCard /> },
     { path: "/admin/withdrawals", label: "Withdrawals", icon: <FaMoneyCheckAlt /> },
     { path: "/admin/users", label: "Users", icon: <FaUsers /> },
   ];
