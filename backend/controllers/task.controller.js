@@ -47,6 +47,9 @@ exports.getAvailableTasks = async (req, res) => {
     }
 
     // Group identical open tasks by their order, counting remaining spots.
+    // No `include` here — joining Order's columns without adding them to
+    // GROUP BY violates MySQL's ONLY_FULL_GROUP_BY (on by default), and
+    // the frontend doesn't use that data in this grouped view anyway.
     const groups = await Task.findAll({
       where: whereClause,
       attributes: [
@@ -55,17 +58,10 @@ exports.getAvailableTasks = async (req, res) => {
         'taskType',
         'targetUrl',
         'reward',
-        [sequelize.fn('COUNT', sequelize.col('Task.id')), 'availableCount']
+        [sequelize.fn('COUNT', sequelize.col('id')), 'availableCount']
       ],
       group: ['orderId', 'platform', 'taskType', 'targetUrl', 'reward'],
       order: [[sequelize.literal('MAX(priority)'), 'DESC'], [sequelize.literal('MAX(created_at)'), 'DESC']],
-      include: [
-        {
-          model: Order,
-          as: 'order',
-          attributes: ['orderId', 'service']
-        }
-      ],
       limit: parseInt(limit),
       offset,
       subQuery: false
