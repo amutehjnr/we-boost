@@ -165,6 +165,7 @@ exports.createOrder = async (req, res) => {
     const tasks = [];
     for (let i = 0; i < numberOfTasks; i++) {
       tasks.push({
+        taskId: `TASK${Date.now()}-${order.id.slice(0, 8)}-${i}`,
         orderId: order.id,
         clientId: userId,
         platform,
