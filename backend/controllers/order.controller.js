@@ -17,7 +17,9 @@ const SERVICE_RATES = {
 const CATEGORY_TO_ACTION = (category, platform) => {
   switch (category) {
     case 'Followers':
-      return platform === 'YouTube' ? 'Subscribe' : 'Follow';
+      if (platform === 'YouTube') return 'Subscribe';
+      if (platform === 'Telegram') return 'Join';
+      return 'Follow';
     case 'Likes':
       return 'Like';
     case 'Views':
@@ -74,8 +76,23 @@ const TASK_RATES = {
   },
   YoutubeMusic: {
     Stream: parseFloat(process.env.RATE_YOUTUBE_MUSIC_STREAM) || 18
+  },
+  LinkedIn: {
+    Like: parseFloat(process.env.RATE_LINKEDIN_LIKE) || 15,
+    Follow: parseFloat(process.env.RATE_LINKEDIN_FOLLOW) || 30,
+    Comment: parseFloat(process.env.RATE_LINKEDIN_COMMENT) || 35,
+    Share: parseFloat(process.env.RATE_LINKEDIN_SHARE) || 35
+  },
+  Twitch: {
+    Follow: parseFloat(process.env.RATE_TWITCH_FOLLOW) || 20,
+    View: parseFloat(process.env.RATE_TWITCH_VIEW) || 8
+  },
+  Telegram: {
+    Join: parseFloat(process.env.RATE_TELEGRAM_JOIN) || 15,
+    View: parseFloat(process.env.RATE_TELEGRAM_VIEW) || 5
   }
 };
+
 
 // @desc    Create new order
 // @route   POST /api/orders

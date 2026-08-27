@@ -27,7 +27,9 @@ const LinkedAccount = sequelize.define('LinkedAccount', {
       'Spotify', 
       'Audiomack', 
       'YoutubeMusic',
-      'LinkedIn'
+      'LinkedIn',
+      'Twitch',
+      'Telegram'
     ),
     allowNull: false
   },

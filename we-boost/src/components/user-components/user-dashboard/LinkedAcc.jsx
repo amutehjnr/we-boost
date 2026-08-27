@@ -1,22 +1,31 @@
-import React, { useEffect, useState } from "react";
-import { FaFacebook, FaInstagram, FaTiktok, FaTwitter, FaYoutube, FaSpotify, FaCheckCircle, FaLink, FaTimes } from "react-icons/fa";
+import React, { useEffect, useState, useRef } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { FaFacebook, FaInstagram, FaTiktok, FaTwitter, FaYoutube, FaSpotify, FaLinkedin, FaTwitch, FaTelegram, FaCheckCircle, FaLink, FaTimes } from "react-icons/fa";
 import { useTheme } from "../../../context/ThemeContext";
 import API from "../../../lib/api";
 
-// Maps display info to the exact enum values the backend expects
+// Maps display info to the exact enum values the backend expects.
+// oauth: true means "Connect" does a real redirect-based login instead
+// of a manual prompt. Telegram is handled separately via its own widget.
 const PLATFORMS = [
-  { name: "Facebook", icon: <FaFacebook className="text-blue-600" />, key: "Facebook" },
-  { name: "Instagram", icon: <FaInstagram className="text-pink-500" />, key: "Instagram" },
-  { name: "TikTok", icon: <FaTiktok className="text-black dark:text-white" />, key: "TikTok" },
-  { name: "Twitter (X)", icon: <FaTwitter className="text-sky-500" />, key: "Twitter" },
-  { name: "YouTube", icon: <FaYoutube className="text-red-600" />, key: "YouTube" },
-  { name: "Spotify", icon: <FaSpotify className="text-green-500" />, key: "Spotify" },
+  { name: "Facebook", icon: <FaFacebook className="text-blue-600" />, key: "Facebook", oauth: true },
+  { name: "Instagram", icon: <FaInstagram className="text-pink-500" />, key: "Instagram", oauth: true },
+  { name: "TikTok", icon: <FaTiktok className="text-black dark:text-white" />, key: "TikTok", oauth: true },
+  { name: "Twitter (X)", icon: <FaTwitter className="text-sky-500" />, key: "Twitter", oauth: true },
+  { name: "YouTube", icon: <FaYoutube className="text-red-600" />, key: "YouTube", oauth: true },
+  { name: "Spotify", icon: <FaSpotify className="text-green-500" />, key: "Spotify", oauth: true },
+  { name: "LinkedIn", icon: <FaLinkedin className="text-blue-700" />, key: "LinkedIn", oauth: true },
+  { name: "Twitch", icon: <FaTwitch className="text-purple-600" />, key: "Twitch", oauth: true },
+  { name: "Telegram", icon: <FaTelegram className="text-sky-400" />, key: "Telegram", telegram: true },
 ];
 
 export default function LinkedAccounts() {
   const { theme } = useTheme();
   const [linkedAccounts, setLinkedAccounts] = useState([]);
   const [busyKey, setBusyKey] = useState(null);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const telegramContainerRef = useRef(null);
 
   const fetchLinked = async () => {
     try {
@@ -32,16 +41,82 @@ export default function LinkedAccounts() {
     fetchLinked();
   }, []);
 
+  // After an OAuth redirect back from a platform, show the result and
+  // clean the URL so a refresh doesn't repeat it.
+  useEffect(() => {
+    const connected = searchParams.get("connected");
+    const error = searchParams.get("error");
+
+    if (connected) {
+      alert(`${connected} connected successfully!`);
+      fetchLinked();
+      navigate("/user-dashboard/accounts", { replace: true });
+    } else if (error) {
+      alert(`Failed to connect ${error}. Please try again.`);
+      navigate("/user-dashboard/accounts", { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const isLinked = (key) =>
     linkedAccounts.some((acc) => acc.platform === key && acc.isActive);
 
-  const handleConnect = async (platformKey) => {
-    const username = prompt(`Enter your ${platformKey} username to connect:`);
+  // Load Telegram's login widget script into the placeholder div once we
+  // know Telegram isn't linked yet. Telegram handles its own popup UI and
+  // calls window.onTelegramAuth with the signed user data when done.
+  useEffect(() => {
+    if (isLinked("Telegram") || !telegramContainerRef.current) return;
+
+    window.onTelegramAuth = async (user) => {
+      setBusyKey("Telegram");
+      try {
+        await API.post("/platforms/oauth/telegram/verify", user);
+        await fetchLinked();
+      } catch (err) {
+        console.error("Error verifying Telegram login:", err);
+        alert(err?.response?.data?.message || "Failed to connect Telegram.");
+      } finally {
+        setBusyKey(null);
+      }
+    };
+
+    const script = document.createElement("script");
+    script.src = "https://telegram.org/js/telegram-widget.js?22";
+    script.setAttribute("data-telegram-login", process.env.REACT_APP_TELEGRAM_BOT_USERNAME || "");
+    script.setAttribute("data-size", "large");
+    script.setAttribute("data-onauth", "onTelegramAuth(user)");
+    script.setAttribute("data-request-access", "write");
+    script.async = true;
+
+    telegramContainerRef.current.innerHTML = "";
+    telegramContainerRef.current.appendChild(script);
+
+    return () => {
+      delete window.onTelegramAuth;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkedAccounts]);
+
+  const handleConnect = async (platform) => {
+    if (platform.oauth) {
+      setBusyKey(platform.key);
+      try {
+        const res = await API.get(`/platforms/oauth/${platform.key.toLowerCase()}/init`);
+        window.location.href = res.data.authUrl;
+      } catch (err) {
+        console.error("Error starting OAuth connect:", err);
+        alert("Failed to start connection. Please try again.");
+        setBusyKey(null);
+      }
+      return;
+    }
+
+    const username = prompt(`Enter your ${platform.name} username to connect:`);
     if (!username) return;
 
-    setBusyKey(platformKey);
+    setBusyKey(platform.key);
     try {
-      await API.post("/platforms/link", { platform: platformKey, username });
+      await API.post("/platforms/link", { platform: platform.key, username });
       await fetchLinked();
     } catch (err) {
       console.error("Error linking account:", err);
@@ -102,9 +177,11 @@ export default function LinkedAccounts() {
                     <FaTimes /> {busy ? "Removing..." : "Unlink"}
                   </button>
                 </div>
+              ) : platform.telegram ? (
+                <div className="mt-3" ref={telegramContainerRef} />
               ) : (
                 <button
-                  onClick={() => handleConnect(platform.key)}
+                  onClick={() => handleConnect(platform)}
                   disabled={busy}
                   className="mt-3 bg-red-600 hover:bg-red-700 text-white font-medium px-5 py-2 rounded-lg flex items-center gap-2 transition disabled:opacity-60"
                 >
