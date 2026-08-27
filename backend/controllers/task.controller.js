@@ -161,6 +161,22 @@ exports.startTask = async (req, res) => {
       });
     }
 
+    // Prevent one person from claiming multiple tasks on the same order.
+    // A "100 followers" order means 100 distinct real people, not one
+    // person completing the action 100 times.
+    const alreadyOnOrder = await Task.findOne({
+      where: { orderId: task.orderId, userId },
+      transaction
+    });
+
+    if (alreadyOnOrder) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'You can only complete one task per order.'
+      });
+    }
+
     // Assign task to user
     await task.update({
       userId,
