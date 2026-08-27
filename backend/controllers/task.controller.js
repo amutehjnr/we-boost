@@ -3,7 +3,9 @@ const { Task, Order, User, LinkedAccount } = require('../models');
 const { Op } = require('sequelize');
 const { sequelize } = require('../config/database');
 
-// @desc    Get available tasks for user
+// @desc    Get available tasks, grouped by order (one card per order, not
+//          one per individual task — a 100-follower order is one entry
+//          with a remaining-spots count, not 100 near-identical rows).
 // @route   GET /api/tasks/available
 // @access  Private (Task User only)
 exports.getAvailableTasks = async (req, res) => {
@@ -17,47 +19,72 @@ exports.getAvailableTasks = async (req, res) => {
       where: { userId, isActive: true },
       attributes: ['platform']
     });
-    
+
     const linkedPlatforms = linkedAccounts.map(acc => acc.platform);
+
+    // Orders this user has already claimed a task on — exclude them
+    // entirely, since they can't claim a second slot on the same order.
+    const ownTaskOrderIds = await Task.findAll({
+      where: { userId },
+      attributes: ['orderId'],
+      group: ['orderId']
+    });
+    const excludedOrderIds = ownTaskOrderIds.map(t => t.orderId);
 
     const whereClause = {
       status: 'Available',
-      userId: null, // Not yet assigned
-      clientId: { [Op.ne]: userId } // Don't show own tasks
+      userId: null,
+      clientId: { [Op.ne]: userId }
     };
 
-    // Filter by platforms user has linked
     if (linkedPlatforms.length > 0) {
       whereClause.platform = { [Op.in]: linkedPlatforms };
     }
-
     if (platform) whereClause.platform = platform;
     if (taskType) whereClause.taskType = taskType;
+    if (excludedOrderIds.length > 0) {
+      whereClause.orderId = { [Op.notIn]: excludedOrderIds };
+    }
 
-    const { count, rows: tasks } = await Task.findAndCountAll({
+    // Group identical open tasks by their order, counting remaining spots.
+    const groups = await Task.findAll({
       where: whereClause,
-      limit: parseInt(limit),
-      offset,
-      order: [
-        ['priority', 'DESC'],
-        ['createdAt', 'DESC']
+      attributes: [
+        'orderId',
+        'platform',
+        'taskType',
+        'targetUrl',
+        'reward',
+        [sequelize.fn('COUNT', sequelize.col('Task.id')), 'availableCount']
       ],
+      group: ['orderId', 'platform', 'taskType', 'targetUrl', 'reward'],
+      order: [[sequelize.literal('MAX(priority)'), 'DESC'], [sequelize.literal('MAX(created_at)'), 'DESC']],
       include: [
         {
           model: Order,
           as: 'order',
           attributes: ['orderId', 'service']
         }
-      ]
+      ],
+      limit: parseInt(limit),
+      offset,
+      subQuery: false
+    });
+
+    // Total count of distinct order-groups, for pagination
+    const totalGroups = await Task.count({
+      where: whereClause,
+      distinct: true,
+      col: 'orderId'
     });
 
     res.status(200).json({
       success: true,
-      data: tasks,
+      data: groups,
       pagination: {
-        total: count,
+        total: totalGroups,
         page: parseInt(page),
-        pages: Math.ceil(count / limit)
+        pages: Math.ceil(totalGroups / limit)
       }
     });
   } catch (error) {
@@ -65,6 +92,93 @@ exports.getAvailableTasks = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching available tasks',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Claim one open task slot from a specific order (used from the
+//          grouped available-tasks view). Row-locks the pick so two
+//          people clicking at the same moment can't grab the same task.
+// @route   POST /api/tasks/claim/:orderId
+// @access  Private (Task User only)
+exports.claimTaskFromOrder = async (req, res) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const { orderId } = req.params;
+    const userId = req.user.id;
+
+    // Lock one available, unclaimed row for this order so concurrent
+    // claims can't both land on the same task.
+    const task = await Task.findOne({
+      where: { orderId, status: 'Available', userId: null },
+      lock: transaction.LOCK.UPDATE,
+      transaction
+    });
+
+    if (!task) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'No open slots left on this order.'
+      });
+    }
+
+    if (task.clientId === userId) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot complete tasks on your own order.'
+      });
+    }
+
+    const linkedAccount = await LinkedAccount.findOne({
+      where: { userId, platform: task.platform, isActive: true },
+      transaction
+    });
+
+    if (!linkedAccount) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: `Please link your ${task.platform} account first`
+      });
+    }
+
+    const alreadyOnOrder = await Task.findOne({
+      where: { orderId, userId },
+      transaction
+    });
+
+    if (alreadyOnOrder) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'You can only complete one task per order.'
+      });
+    }
+
+    await task.update({
+      userId,
+      status: 'Assigned',
+      assignedAt: new Date(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+    }, { transaction });
+
+    await transaction.commit();
+
+    res.status(200).json({
+      success: true,
+      message: 'Task claimed successfully',
+      data: task
+    });
+  } catch (error) {
+    await transaction.rollback();
+    console.error('Claim task error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error claiming task',
       error: error.message
     });
   }
