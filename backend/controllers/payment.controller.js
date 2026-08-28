@@ -1,5 +1,5 @@
 // controllers/payment.controller.js
-const { Payment, User } = require('../models');
+const { Payment, User, Withdrawal } = require('../models');
 const { sequelize } = require('../config/database');
 const crypto = require('crypto');
 const axios = require('axios');
@@ -289,6 +289,52 @@ exports.paystackWebhook = async (req, res) => {
           await transaction.commit();
         } catch (error) {
           await transaction.rollback();
+          throw error;
+        }
+      }
+    }
+
+    // Withdrawal payouts — Paystack confirms the actual bank transfer
+    // asynchronously here, since a transfer can succeed or fail some
+    // time after it was initiated.
+    if (['transfer.success', 'transfer.failed', 'transfer.reversed'].includes(event.event)) {
+      const { transfer_code, reference } = event.data;
+
+      const withdrawal = await Withdrawal.findOne({
+        where: { transferCode: transfer_code }
+      });
+
+      if (withdrawal) {
+        const dbTransaction = await sequelize.transaction();
+        try {
+          if (event.event === 'transfer.success' && withdrawal.status !== 'Completed') {
+            await withdrawal.update({
+              status: 'Completed',
+              transactionReference: reference,
+              completedAt: new Date()
+            }, { transaction: dbTransaction });
+
+            const user = await User.findByPk(withdrawal.userId, { transaction: dbTransaction });
+            await user.update({
+              totalWithdrawn: parseFloat(user.totalWithdrawn) + parseFloat(withdrawal.amount)
+            }, { transaction: dbTransaction });
+          } else if (['transfer.failed', 'transfer.reversed'].includes(event.event) && withdrawal.status !== 'Rejected') {
+            // Refund the wallet since the money never actually left
+            const user = await User.findByPk(withdrawal.userId, { transaction: dbTransaction });
+            await user.update({
+              walletBalance: parseFloat(user.walletBalance) + parseFloat(withdrawal.amount)
+            }, { transaction: dbTransaction });
+
+            await withdrawal.update({
+              status: 'Rejected',
+              adminNotes: `Paystack ${event.event}: transfer did not complete, refunded to wallet.`,
+              rejectedAt: new Date()
+            }, { transaction: dbTransaction });
+          }
+
+          await dbTransaction.commit();
+        } catch (error) {
+          await dbTransaction.rollback();
           throw error;
         }
       }

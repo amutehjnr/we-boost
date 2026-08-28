@@ -21,20 +21,37 @@ export default function AdminWithdrawals() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
-  const handleProcess = async (id, status) => {
-    let transactionReference = "";
-    let adminNotes = "";
-
-    if (status === "Completed") {
-      transactionReference = prompt("Enter the bank transfer reference for this payout:") || "";
-      if (!transactionReference) return;
-    } else {
-      adminNotes = prompt("Reason for rejecting this withdrawal:") || "";
-    }
-
+  const handleApprove = async (id) => {
     setBusyId(id);
     try {
-      await API.put(`/withdrawals/${id}/process`, { status, transactionReference, adminNotes });
+      const res = await API.put(`/withdrawals/${id}/process`, { status: "Completed" });
+
+      if (res.data.requiresOtp) {
+        const otp = prompt(
+          "Paystack requires an OTP to finalize this transfer — check the phone/email on the Paystack account and enter it here:"
+        );
+        if (otp) {
+          await API.post(`/withdrawals/${id}/finalize-transfer`, { otp });
+          alert("Transfer finalized. It'll move to Completed once Paystack confirms.");
+        }
+      } else {
+        alert(res.data.message || "Transfer initiated.");
+      }
+
+      fetchWithdrawals();
+    } catch (err) {
+      console.error("Failed to process withdrawal:", err);
+      alert(err?.response?.data?.message || "Failed to process withdrawal.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleReject = async (id) => {
+    const adminNotes = prompt("Reason for rejecting this withdrawal:") || "";
+    setBusyId(id);
+    try {
+      await API.put(`/withdrawals/${id}/process`, { status: "Rejected", adminNotes });
       fetchWithdrawals();
     } catch (err) {
       console.error("Failed to process withdrawal:", err);
@@ -48,11 +65,11 @@ export default function AdminWithdrawals() {
     <AdminLayout>
       <h1 className="text-2xl font-bold mb-2">Withdrawals</h1>
       <p className="text-gray-500 dark:text-gray-400 mb-6">
-        Approve a withdrawal only after you've actually sent the bank transfer yourself — this doesn't move money automatically.
+        Approving sends a real bank transfer via Paystack from your business balance. Make sure your Paystack account has sufficient funds before approving.
       </p>
 
       <div className="flex gap-2 mb-6">
-        {["Pending", "Completed", "Rejected"].map((s) => (
+        {["Pending", "Processing", "Completed", "Rejected"].map((s) => (
           <button
             key={s}
             onClick={() => setFilter(s)}
@@ -96,14 +113,15 @@ export default function AdminWithdrawals() {
                   <td className="py-3 px-5">
                     <div className="flex gap-2">
                       <button
-                        onClick={() => handleProcess(w.id, "Completed")}
-                        disabled={busyId === w.id}
+                        onClick={() => handleApprove(w.id)}
+                        disabled={busyId === w.id || !w.bankCode}
+                        title={!w.bankCode ? "No bank code on file — this request predates bank selection" : ""}
                         className="bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg disabled:opacity-60"
                       >
-                        Mark Paid
+                        {busyId === w.id ? "Processing..." : "Approve & Pay"}
                       </button>
                       <button
-                        onClick={() => handleProcess(w.id, "Rejected")}
+                        onClick={() => handleReject(w.id)}
                         disabled={busyId === w.id}
                         className="bg-gray-200 dark:bg-gray-700 hover:bg-red-100 text-red-600 text-xs font-medium px-3 py-1.5 rounded-lg disabled:opacity-60"
                       >

@@ -39,6 +39,12 @@ const Withdrawal = sequelize.define('Withdrawal', {
     allowNull: false,
     field: 'bank_name'
   },
+  bankCode: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    field: 'bank_code',
+    comment: 'Paystack bank code, required to actually send a transfer'
+  },
   accountNumber: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -48,6 +54,17 @@ const Withdrawal = sequelize.define('Withdrawal', {
     type: DataTypes.STRING,
     allowNull: false,
     field: 'account_name'
+  },
+  paystackRecipientCode: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    field: 'paystack_recipient_code'
+  },
+  transferCode: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    field: 'transfer_code',
+    comment: 'Paystack transfer_code, needed to finalize with OTP if required'
   },
   status: {
     type: DataTypes.ENUM('Pending', 'Processing', 'Approved', 'Completed', 'Rejected', 'Cancelled'),
