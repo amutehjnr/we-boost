@@ -4,6 +4,7 @@ const { Withdrawal, User } = require('../models');
 const { verifyJWT, authorize } = require('../middleware/auth');
 const { sequelize } = require('../config/database');
 const axios = require('axios');
+const { sendAdminWithdrawalAlertEmail } = require('../utils/email');
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
@@ -85,6 +86,14 @@ router.post('/', verifyJWT, async (req, res) => {
     }, { transaction });
 
     await transaction.commit();
+
+    sendAdminWithdrawalAlertEmail({
+      fullName: user.fullName,
+      amount,
+      bankName,
+      accountNumber
+    });
+
     res.status(201).json({ success: true, data: withdrawal });
   } catch (error) {
     await transaction.rollback();

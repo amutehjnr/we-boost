@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import ModeToggle from "../ModeToggle";
-import { FaBell, FaSun, FaMoon } from "react-icons/fa";
+import { FaBell, FaSun, FaMoon, FaSignOutAlt } from "react-icons/fa";
+import { signOut } from "firebase/auth";
+import { auth } from "../../firebase";
 import { useTheme } from "../../context/ThemeContext";
 import API from "../../lib/api";
 
@@ -20,6 +23,12 @@ export default function Header({ setSidebarOpen, sidebarOpen, isClient, userMode
     };
     fetchUser();
   }, []);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    localStorage.removeItem("token");
+    window.location.href = "/signin";
+  };
 
   // Generate initials (e.g. "Mustapha Sani" → "MS")
   const getInitials = (name) => {
@@ -64,8 +73,8 @@ export default function Header({ setSidebarOpen, sidebarOpen, isClient, userMode
           />
         )}
 
-        {/* USER PROFILE */}
-        <div className="flex items-center gap-2 cursor-pointer">
+        {/* USER PROFILE — now links to the profile page */}
+        <Link to="/profile" className="flex items-center gap-2 cursor-pointer">
           {/* Image OR initials */}
           {user?.photoUrl ? (
             <img
@@ -86,7 +95,15 @@ export default function Header({ setSidebarOpen, sidebarOpen, isClient, userMode
           <span className="text-gray-700 dark:text-gray-300 text-sm">
             {user?.fullName || "User"}
           </span>
-        </div>
+        </Link>
+
+        <button
+          onClick={handleLogout}
+          title="Log out"
+          className="text-gray-600 dark:text-gray-300 hover:text-red-600 text-xl"
+        >
+          <FaSignOutAlt />
+        </button>
       </div>
     </header>
   );

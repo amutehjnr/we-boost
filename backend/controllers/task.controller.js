@@ -2,6 +2,7 @@
 const { Task, Order, User, LinkedAccount } = require('../models');
 const { Op } = require('sequelize');
 const { sequelize } = require('../config/database');
+const { sendTaskVerifiedEmail } = require('../utils/email');
 
 // @desc    Get available tasks, grouped by order (one card per order, not
 //          one per individual task — a 100-follower order is one entry
@@ -489,6 +490,9 @@ exports.verifyTask = async (req, res) => {
       });
     }
 
+    // Capture the task-doer before the reject branch clears task.userId
+    const taskDoer = await User.findByPk(task.userId, { transaction });
+
     if (approved) {
       // Approve task and credit user
       const user = await User.findByPk(task.userId, { transaction });
@@ -526,6 +530,16 @@ exports.verifyTask = async (req, res) => {
     }
 
     await transaction.commit();
+
+    if (taskDoer) {
+      sendTaskVerifiedEmail(taskDoer.email, taskDoer.fullName, {
+        approved,
+        reward: task.reward,
+        platform: task.platform,
+        taskType: task.taskType,
+        verificationNotes
+      });
+    }
 
     res.status(200).json({
       success: true,

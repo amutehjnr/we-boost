@@ -3,6 +3,7 @@ const { Payment, User, Withdrawal } = require('../models');
 const { sequelize } = require('../config/database');
 const crypto = require('crypto');
 const axios = require('axios');
+const { sendPaymentSuccessEmail, sendWithdrawalStatusEmail } = require('../utils/email');
 
 // Paystack configuration
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
@@ -187,6 +188,8 @@ exports.verifyPayment = async (req, res) => {
 
         await transaction.commit();
 
+        sendPaymentSuccessEmail(user.email, user.fullName, payment.amount);
+
         return res.status(200).json({
           success: true,
           message: 'Payment verified successfully',
@@ -221,6 +224,8 @@ exports.verifyPayment = async (req, res) => {
         }, { transaction });
 
         await transaction.commit();
+
+        sendPaymentSuccessEmail(user.email, user.fullName, payment.amount);
 
         return res.status(200).json({
           success: true,
@@ -306,6 +311,8 @@ exports.paystackWebhook = async (req, res) => {
 
       if (withdrawal) {
         const dbTransaction = await sequelize.transaction();
+        let emailUser = null;
+        let emailStatus = null;
         try {
           if (event.event === 'transfer.success' && withdrawal.status !== 'Completed') {
             await withdrawal.update({
@@ -318,6 +325,8 @@ exports.paystackWebhook = async (req, res) => {
             await user.update({
               totalWithdrawn: parseFloat(user.totalWithdrawn) + parseFloat(withdrawal.amount)
             }, { transaction: dbTransaction });
+            emailUser = user;
+            emailStatus = 'Completed';
           } else if (['transfer.failed', 'transfer.reversed'].includes(event.event) && withdrawal.status !== 'Rejected') {
             // Refund the wallet since the money never actually left
             const user = await User.findByPk(withdrawal.userId, { transaction: dbTransaction });
@@ -330,9 +339,19 @@ exports.paystackWebhook = async (req, res) => {
               adminNotes: `Paystack ${event.event}: transfer did not complete, refunded to wallet.`,
               rejectedAt: new Date()
             }, { transaction: dbTransaction });
+            emailUser = user;
+            emailStatus = 'Rejected';
           }
 
           await dbTransaction.commit();
+
+          if (emailUser) {
+            sendWithdrawalStatusEmail(emailUser.email, emailUser.fullName, {
+              status: emailStatus,
+              amount: withdrawal.amount,
+              reason: emailStatus === 'Rejected' ? 'The bank transfer did not complete.' : undefined
+            });
+          }
         } catch (error) {
           await dbTransaction.rollback();
           throw error;

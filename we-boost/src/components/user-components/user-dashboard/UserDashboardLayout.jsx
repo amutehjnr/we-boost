@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { signOut } from "firebase/auth";
+import { auth } from "../../../firebase";
 import { useTheme } from "../../../context/ThemeContext";
 import API from "../../../lib/api";
 
@@ -18,6 +20,7 @@ import {
   FaCog,
   FaSun,
   FaMoon,
+  FaSignOutAlt,
 } from "react-icons/fa";
 
 export default function UserDashboardLayout({ isClient, userModeToggle }) {
@@ -26,6 +29,12 @@ export default function UserDashboardLayout({ isClient, userModeToggle }) {
 
   const location = useLocation();
   const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    localStorage.removeItem("token");
+    window.location.href = "/signin";
+  };
   const { theme, toggleTheme } = useTheme();
 
   // Fetch logged-in user from backend
@@ -147,7 +156,7 @@ export default function UserDashboardLayout({ isClient, userModeToggle }) {
                     )}
                   </button>
 
-                  <div className="flex items-center gap-2 cursor-pointer">
+                  <Link to="/user-dashboard/settings" className="flex items-center gap-2 cursor-pointer">
                     {user?.photoUrl ? (
                       <img
                         src={user.photoUrl}
@@ -163,7 +172,15 @@ export default function UserDashboardLayout({ isClient, userModeToggle }) {
                     <span className="text-gray-700 dark:text-gray-300 text-sm font-medium">
                       {user?.fullName || "User"}
                     </span>
-                  </div>
+                  </Link>
+
+                  <button
+                    onClick={handleLogout}
+                    title="Log out"
+                    className="text-gray-500 dark:text-gray-300 hover:text-red-600 text-xl"
+                  >
+                    <FaSignOutAlt />
+                  </button>
                 </div>
               </header>
 

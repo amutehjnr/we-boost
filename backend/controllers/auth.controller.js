@@ -2,6 +2,7 @@
 const { User } = require('../models');
 const jwt = require('jsonwebtoken');
 const admin = require('../config/firebase-admin');
+const { sendWelcomeEmail } = require('../utils/email');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -80,6 +81,10 @@ exports.register = async (req, res) => {
     // Generate tokens
     const token = generateToken(user.id);
     const refreshToken = generateRefreshToken(user.id);
+
+    // Don't block/fail the response on email — sendWelcomeEmail already
+    // catches its own errors internally.
+    sendWelcomeEmail(user.email, user.fullName);
 
     res.status(201).json({
       success: true,
