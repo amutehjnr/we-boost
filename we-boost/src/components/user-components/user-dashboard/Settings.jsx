@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../../context/ThemeContext";
-import { FaUser, FaLock, FaBell, FaMoon, FaSun } from "react-icons/fa";
+import { FaUser, FaLock, FaBell } from "react-icons/fa";
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
@@ -10,7 +10,7 @@ import { auth } from "../../../firebase";
 import API from "../../../lib/api";
 
 export default function Settings() {
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
 
   const [saving, setSaving] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
@@ -241,33 +241,6 @@ export default function Settings() {
             />
             <p>Enable notifications for new tasks and earnings updates</p>
           </div>
-        </div>
-
-        {/* Theme Section */}
-        <div>
-          <h2 className="flex items-center gap-2 text-lg font-semibold mb-4">
-            {theme === "dark" ? (
-              <FaMoon className="text-red-600" />
-            ) : (
-              <FaSun className="text-red-600" />
-            )}{" "}
-            Theme Preference
-          </h2>
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg transition"
-          >
-            {theme === "dark" ? (
-              <>
-                <FaSun /> Switch to Light Mode
-              </>
-            ) : (
-              <>
-                <FaMoon /> Switch to Dark Mode
-              </>
-            )}
-          </button>
         </div>
 
         {/* Submit */}

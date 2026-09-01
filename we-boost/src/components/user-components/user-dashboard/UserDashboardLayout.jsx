@@ -170,7 +170,7 @@ export default function UserDashboardLayout({ isClient, userModeToggle }) {
                     )}
 
                     <span className="text-gray-700 dark:text-gray-300 text-sm font-medium">
-                      {user?.fullName || "User"}
+                      {user?.fullName || ""}
                     </span>
                   </Link>
 
