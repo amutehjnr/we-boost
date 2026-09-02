@@ -3,6 +3,7 @@ import './index.css';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import ProtectedRoute from './route-module/ProtectedRoute';
+import VerifyEmail from './components/VerifyEmail';
 import AdminRoute from './route-module/AdminRoute';
 import { auth } from "./firebase";
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -130,6 +131,7 @@ function App() {
       <Routes>
         <Route path='/' element={<Home handleLogout={handleLogout} user={user} isClient={isClient} userModeToggle={userModeToggle} />} />
         <Route path='/signup' element={<SignUp />} />
+        <Route path='/verify-email' element={<VerifyEmail />} />
         <Route path='/signin' element={<SignIn
           email={email}
           setEmail={setEmail}

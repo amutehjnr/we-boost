@@ -2,7 +2,7 @@
 const { User } = require('../models');
 const jwt = require('jsonwebtoken');
 const admin = require('../config/firebase-admin');
-const { sendWelcomeEmail } = require('../utils/email');
+const { sendVerificationEmail } = require('../utils/email');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -82,9 +82,15 @@ exports.register = async (req, res) => {
     const token = generateToken(user.id);
     const refreshToken = generateRefreshToken(user.id);
 
-    // Don't block/fail the response on email — sendWelcomeEmail already
-    // catches its own errors internally.
-    sendWelcomeEmail(user.email, user.fullName);
+    // Don't block/fail the response on email — send already catches its
+    // own errors internally.
+    const verifyToken = jwt.sign(
+      { id: user.id, purpose: 'email_verify' },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verifyToken}`;
+    sendVerificationEmail(user.email, user.fullName, verifyUrl);
 
     res.status(201).json({
       success: true,
@@ -316,6 +322,73 @@ exports.updatePassword = async (req, res) => {
       message: 'Error updating password',
       error: error.message
     });
+  }
+};
+
+// @desc    Confirm a user's email via the link sent at signup
+// @route   GET /api/auth/verify-email?token=...
+// @access  Public
+exports.verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) {
+      return res.status(400).json({ success: false, message: 'Missing verification token' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(400).json({ success: false, message: 'This verification link has expired or is invalid' });
+    }
+
+    if (decoded.purpose !== 'email_verify') {
+      return res.status(400).json({ success: false, message: 'Invalid verification token' });
+    }
+
+    const user = await User.findByPk(decoded.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (!user.isVerified) {
+      await user.update({ isVerified: true });
+    }
+
+    res.status(200).json({ success: true, message: 'Email verified successfully' });
+  } catch (error) {
+    console.error('Verify email error:', error);
+    res.status(500).json({ success: false, message: 'Error verifying email' });
+  }
+};
+
+// @desc    Resend the verification email
+// @route   POST /api/auth/resend-verification
+// @access  Private
+exports.resendVerification = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ success: false, message: 'Your email is already verified' });
+    }
+
+    const verifyToken = jwt.sign(
+      { id: user.id, purpose: 'email_verify' },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verifyToken}`;
+    await sendVerificationEmail(user.email, user.fullName, verifyUrl);
+
+    res.status(200).json({ success: true, message: 'Verification email sent' });
+  } catch (error) {
+    console.error('Resend verification error:', error);
+    res.status(500).json({ success: false, message: 'Error sending verification email' });
   }
 };
 

@@ -184,6 +184,25 @@ export default function UserDashboardLayout({ isClient, userModeToggle }) {
                 </div>
               </header>
 
+              {user && !user.isVerified && (
+                <div className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-sm px-6 py-2 flex items-center justify-between">
+                  <span>Please verify your email — check your inbox for the link. Withdrawals require a verified email.</span>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await API.post("/auth/resend-verification");
+                        alert("Verification email sent — check your inbox.");
+                      } catch (err) {
+                        alert(err?.response?.data?.message || "Failed to resend verification email.");
+                      }
+                    }}
+                    className="font-semibold underline shrink-0 ml-4"
+                  >
+                    Resend
+                  </button>
+                </div>
+              )}
+
               <main className="flex-1 overflow-y-auto p-6">
                 <Outlet />
               </main>

@@ -61,6 +61,14 @@ router.post('/', verifyJWT, async (req, res) => {
 
     const user = await User.findByPk(req.user.id, { transaction });
 
+    if (!user.isVerified) {
+      await transaction.rollback();
+      return res.status(403).json({
+        success: false,
+        message: 'Please verify your email before requesting a withdrawal. Check your inbox for the verification link.'
+      });
+    }
+
     if (user.walletBalance < amount) {
       await transaction.rollback();
       return res.status(400).json({

@@ -252,7 +252,7 @@ function SelectField({ label, value, options, onChange, theme }) {
     <div>
       <label className="block mb-2 font-medium">{label}</label>
       <select
-        className={`w-1/2 p-3 rounded-md border outline-none ${
+        className={`w-full p-3 rounded-md border outline-none ${
           theme === "dark"
             ? "bg-black border-gray-700 text-gray-200"
             : "bg-gray-50 border-gray-300 text-gray-800"
