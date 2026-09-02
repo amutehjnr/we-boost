@@ -28,10 +28,10 @@ export default function Header({ handleLogout, user, isClient, setIsClient, user
 
     return (
         <header className="bg-white shadow-md fixed top-0 left-0 right-0 z-50">
-            <nav className="max-w-7xl mx-auto flex justify-between items-center px-6 py-4">
+            <nav className="max-w-7xl mx-auto flex justify-between items-center gap-3 px-6 py-4">
                 {/* Logo */}
-                <Link to="/">
-                    <img src={logo} alt="WeBoost Logo" className="w-32 md:w-40" />
+                <Link to="/" className="shrink-0">
+                    <img src={logo} alt="WeBoost Logo" className="w-28 md:w-40" />
                 </Link>
 
                 {/* Desktop Menu */}
@@ -55,7 +55,9 @@ export default function Header({ handleLogout, user, isClient, setIsClient, user
                     </Link>
                 </div>
 
-                <ModeToggle isClient={isClient} setIsClient={setIsClient} userModeToggle={userModeToggle} />
+                <div className="shrink-0">
+                    <ModeToggle isClient={isClient} setIsClient={setIsClient} userModeToggle={userModeToggle} />
+                </div>
 
                 {/* Auth Buttons (Desktop) */}
                 {!user ? (
@@ -85,7 +87,7 @@ export default function Header({ handleLogout, user, isClient, setIsClient, user
                 {/* Mobile Menu Button */}
                 <button
                     onClick={toggleMenu}
-                    className="lg:hidden text-3xl text-gray-700 focus:outline-none"
+                    className="lg:hidden shrink-0 text-3xl text-gray-700 focus:outline-none"
                 >
                     {mobileMenuOpen ? <FiX /> : <FiMenu />}
                 </button>

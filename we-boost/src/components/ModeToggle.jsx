@@ -6,7 +6,7 @@ export default function RoleToggle({ isClient, setIsClient, userModeToggle }) {
   return (
     <div
       onClick={userModeToggle}
-      className={`relative w-24 h-8 flex items-center rounded-full cursor-pointer transition-all duration-300 border 
+      className={`relative w-20 h-8 md:w-24 shrink-0 flex items-center rounded-full cursor-pointer transition-all duration-300 border 
         ${isClient ? "bg-red-600 border-red-600" : "bg-white border-red-600"}
       `}
     >
