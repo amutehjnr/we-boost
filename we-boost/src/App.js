@@ -114,8 +114,15 @@ function App() {
 
   // Persist the mode switch to the backend so it survives reloads and future
   // logins, then update local state from the actual saved value and route
-  // to the matching dashboard.
+  // to the matching dashboard. Logged-out visitors (browsing the public
+  // site before signing up) don't have an account to persist to — just
+  // flip the local preview state so the marketing pages update.
   async function userModeToggle() {
+    if (!user) {
+      setIsClient((prev) => !prev);
+      return;
+    }
+
     try {
       const res = await API.post("/users/toggle-mode");
       const nowIsClient = !!res.data.data.isClient;
