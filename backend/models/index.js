@@ -5,6 +5,8 @@ const Task = require('./Task');
 const Payment = require('./Payment');
 const Withdrawal = require('./Withdrawal');
 const LinkedAccount = require('./LinkedAccount');
+const Conversation = require('./Conversation');
+const Message = require('./Message');
 
 // User-Order Associations
 User.hasMany(Order, { foreignKey: 'userId', as: 'orders' });
@@ -41,11 +43,22 @@ Withdrawal.belongsTo(User, { foreignKey: 'processedBy', as: 'processor' });
 User.hasMany(LinkedAccount, { foreignKey: 'userId', as: 'linkedAccounts' });
 LinkedAccount.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
+// Conversation-Message Associations
+Conversation.hasMany(Message, { foreignKey: 'conversationId', as: 'messages' });
+Message.belongsTo(Conversation, { foreignKey: 'conversationId', as: 'conversation' });
+
+// User-Conversation Associations
+User.hasMany(Conversation, { foreignKey: 'userId', as: 'conversations' });
+Conversation.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+Conversation.belongsTo(User, { foreignKey: 'assignedAdminId', as: 'assignedAdmin' });
+
 module.exports = {
   User,
   Order,
   Task,
   Payment,
   Withdrawal,
-  LinkedAccount
+  LinkedAccount,
+  Conversation,
+  Message
 };

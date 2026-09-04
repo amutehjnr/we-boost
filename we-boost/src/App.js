@@ -3,6 +3,7 @@ import './index.css';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import ProtectedRoute from './route-module/ProtectedRoute';
+import ChatWidget from './components/ChatWidget';
 import VerifyEmail from './components/VerifyEmail';
 import AdminRoute from './route-module/AdminRoute';
 import { auth } from "./firebase";
@@ -28,6 +29,7 @@ import AdminUsers from './components/admin/AdminUsers';
 import AdminOrders from './components/admin/AdminOrders';
 import AdminTasks from './components/admin/AdminTasks';
 import AdminPayments from './components/admin/AdminPayments';
+import AdminChat from './components/admin/AdminChat';
 import AddFunds from './components/client-dashboard/Addfunds';
 import FundsHistory from './components/client-dashboard/FundsHistory';
 import UserDashboardHome from './components/user-components/user-dashboard/UserDahboardHome';
@@ -217,6 +219,11 @@ function App() {
             <AdminPayments />
           </AdminRoute>
         } />
+        <Route path='/admin/chat' element={
+          <AdminRoute>
+            <AdminChat />
+          </AdminRoute>
+        } />
         <Route path='/dashboard/add-funds' element={
           <ProtectedRoute>
             <AddFunds isClient={isClient} userModeToggle={userModeToggle} />
@@ -271,6 +278,7 @@ function App() {
           } />
         </Route>
       </Routes>
+      <ChatWidget user={user} />
     </>
   );
 }

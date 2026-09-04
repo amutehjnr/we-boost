@@ -18,6 +18,7 @@ const paymentRoutes = require('./routes/payment.routes');
 const withdrawalRoutes = require('./routes/withdrawal.routes');
 const platformRoutes = require('./routes/platform.routes');
 const adminRoutes = require('./routes/admin.routes');
+const chatRoutes = require('./routes/chat.routes');
 
 const app = express();
 
@@ -108,6 +109,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/withdrawals', withdrawalRoutes);
 app.use('/api/platforms', platformRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/chat', chatRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
