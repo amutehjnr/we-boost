@@ -4,6 +4,7 @@ import AuthLayout from "./AuthLayout.jsx";
 import API from "../lib/api";
 import { auth } from "../firebase";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { friendlyAuthError } from "../lib/firebaseErrorMessage";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -45,7 +46,7 @@ export default function AdminLogin() {
       window.location.href = "/admin";
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || err.message || "Login failed");
+      setError(err.response?.data?.message || friendlyAuthError(err));
       setLoading(false);
     }
   };

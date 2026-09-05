@@ -26,6 +26,12 @@ export default function NewOrder({ isClient, userModeToggle }) {
     High: 50000,
   };
 
+  const SERVICE_DESCRIPTIONS = {
+    Basic: "Gradual delivery over a few days, from real-looking but lower-activity accounts. Our most affordable tier.",
+    Moderate: "Faster delivery with a balanced mix of account quality — our most popular choice.",
+    High: "Fastest delivery from premium, high-activity accounts for maximum credibility and retention.",
+  };
+
   // Ensure quantity is converted safely
   const qty = Number(formData.quantity);
   const rate = serviceRates[formData.service];
@@ -173,6 +179,10 @@ export default function NewOrder({ isClient, userModeToggle }) {
                 onChange={(val) => setFormData({ ...formData, service: val })}
                 theme={theme}
               />
+
+              <p className={`text-sm -mt-3 mb-1 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                {SERVICE_DESCRIPTIONS[formData.service]}
+              </p>
 
               <InfoBox
                 theme={theme}

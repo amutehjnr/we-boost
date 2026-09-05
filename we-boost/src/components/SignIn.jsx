@@ -5,6 +5,7 @@ import AuthLayout from "./AuthLayout.jsx";
 import API from "../lib/api";
 import { auth } from "../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { friendlyAuthError } from "../lib/firebaseErrorMessage";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -41,7 +42,7 @@ export default function SignIn() {
       window.location.href = isClient ? "/dashboard" : "/user-dashboard";
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || err.message || "Login failed");
+      setError(err.response?.data?.message || friendlyAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -79,6 +80,12 @@ export default function SignIn() {
           >
             {showPassword ? <FaEyeSlash /> : <FaEye />}
           </button>
+        </div>
+
+        <div className="text-right -mt-2">
+          <Link to="/forgot-password" className="text-sm text-red-600 hover:underline">
+            Forgot password?
+          </Link>
         </div>
 
         {error && <p className="text-red-500">{error}</p>}

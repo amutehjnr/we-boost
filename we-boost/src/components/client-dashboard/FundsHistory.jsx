@@ -68,7 +68,7 @@ export default function FundsHistory({ isClient, userModeToggle }) {
                   : "bg-white border-gray-200"
               }`}
             >
-              <table className="w-full text-sm md:text-base">
+              <table className="w-full min-w-[700px] text-sm md:text-base">
                 <thead
                   className={`${
                     theme === "dark"

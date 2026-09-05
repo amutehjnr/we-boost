@@ -4,6 +4,7 @@ import { Routes, Route, useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import ProtectedRoute from './route-module/ProtectedRoute';
 import ChatWidget from './components/ChatWidget';
+import ForgotPassword from './components/ForgotPassword';
 import VerifyEmail from './components/VerifyEmail';
 import AdminRoute from './route-module/AdminRoute';
 import { auth } from "./firebase";
@@ -141,6 +142,7 @@ function App() {
         <Route path='/' element={<Home handleLogout={handleLogout} user={user} isClient={isClient} userModeToggle={userModeToggle} />} />
         <Route path='/signup' element={<SignUp />} />
         <Route path='/verify-email' element={<VerifyEmail />} />
+        <Route path='/forgot-password' element={<ForgotPassword />} />
         <Route path='/signin' element={<SignIn
           email={email}
           setEmail={setEmail}

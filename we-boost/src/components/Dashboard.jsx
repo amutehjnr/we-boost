@@ -65,7 +65,8 @@ export default function DashboardHome({ isClient, userModeToggle }) {
               </Link>
             </div>
           ) : (
-            <table className="w-full text-sm md:text-base">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[700px] text-sm md:text-base">
               <thead className="bg-gray-100 dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300">
                 <tr>
                   <th className="py-3 px-4">Order ID</th>
@@ -87,6 +88,7 @@ export default function DashboardHome({ isClient, userModeToggle }) {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>

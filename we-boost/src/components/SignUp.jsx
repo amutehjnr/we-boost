@@ -7,6 +7,7 @@ import API from "../lib/api";
 
 import { auth } from "../firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import { friendlyAuthError } from "../lib/firebaseErrorMessage";
 
 export default function Signup() {
   const [fullName, setFullName] = useState("");
@@ -54,7 +55,7 @@ export default function Signup() {
       window.location.href = accountType === "client" ? "/dashboard" : "/user-dashboard";
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || err.message || "Registration failed");
+      setError(err.response?.data?.message || friendlyAuthError(err));
     } finally {
       setLoading(false);
     }

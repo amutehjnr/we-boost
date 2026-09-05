@@ -2,7 +2,7 @@
 const { User } = require('../models');
 const jwt = require('jsonwebtoken');
 const admin = require('../config/firebase-admin');
-const { sendVerificationEmail } = require('../utils/email');
+const { sendVerificationEmail, sendWelcomeEmail } = require('../utils/email');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -353,6 +353,7 @@ exports.verifyEmail = async (req, res) => {
 
     if (!user.isVerified) {
       await user.update({ isVerified: true });
+      sendWelcomeEmail(user.email, user.fullName);
     }
 
     res.status(200).json({ success: true, message: 'Email verified successfully' });

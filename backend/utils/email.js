@@ -27,15 +27,25 @@ exports.sendVerificationEmail = (to, fullName, verifyUrl) =>
   send({
     to,
     subject: 'Verify your email — WeBoost',
-    html: wrapper('Welcome to WeBoost!', `
+    html: wrapper('Confirm your email', `
       <p>Hi ${fullName},</p>
-      <p>Your account is ready. Please confirm this is really your email address by clicking below:</p>
+      <p>Thanks for signing up! Please confirm this is really your email address by clicking below:</p>
       <p style="margin: 24px 0;">
         <a href="${verifyUrl}" style="background: #dc2626; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
           Verify My Email
         </a>
       </p>
       <p style="font-size: 13px; color: #888;">This link expires in 24 hours. Some features, like withdrawals, require a verified email.</p>
+    `)
+  });
+
+exports.sendWelcomeEmail = (to, fullName) =>
+  send({
+    to,
+    subject: 'Welcome to WeBoost 🎉',
+    html: wrapper('Welcome to WeBoost!', `
+      <p>Hi ${fullName},</p>
+      <p>Your email is verified and your account is fully set up. You can now place orders, complete tasks, and withdraw earnings.</p>
     `)
   });
 

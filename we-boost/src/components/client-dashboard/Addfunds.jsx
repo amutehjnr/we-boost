@@ -92,8 +92,10 @@ export default function AddFunds({ isClient, userModeToggle }) {
                   className={`w-full p-3 rounded-md border outline-none ${theme === "dark" ? "bg-black border-gray-700 text-gray-200" : "bg-gray-50 border-gray-300 text-gray-800"}`}
                 >
                   <option>Paystack</option>
-                  <option>Flutterwave</option>
                 </select>
+                <p className={`text-xs mt-1 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+                  Flutterwave is temporarily unavailable.
+                </p>
               </div>
 
               <div>

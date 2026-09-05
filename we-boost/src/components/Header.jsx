@@ -13,11 +13,21 @@ export default function Header({ handleLogout, user, isClient, setIsClient, user
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const toggleMenu = () => setMobileMenuOpen(!mobileMenuOpen);
     const dropdownRef = useRef(null);
+    const mobileMenuRef = useRef(null);
+    const hamburgerButtonRef = useRef(null);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
                 setDropdownOpen(false);
+            }
+            if (
+                mobileMenuRef.current &&
+                !mobileMenuRef.current.contains(event.target) &&
+                hamburgerButtonRef.current &&
+                !hamburgerButtonRef.current.contains(event.target)
+            ) {
+                setMobileMenuOpen(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -86,6 +96,7 @@ export default function Header({ handleLogout, user, isClient, setIsClient, user
 
                 {/* Mobile Menu Button */}
                 <button
+                    ref={hamburgerButtonRef}
                     onClick={toggleMenu}
                     className="lg:hidden shrink-0 text-3xl text-gray-700 focus:outline-none"
                 >
@@ -95,7 +106,7 @@ export default function Header({ handleLogout, user, isClient, setIsClient, user
 
             {/* Mobile Menu */}
             {mobileMenuOpen && (
-                <div className="lg:hidden bg-white border-t border-gray-200 shadow-md">
+                <div ref={mobileMenuRef} className="lg:hidden bg-white border-t border-gray-200 shadow-md">
                     <div className="grid">
                         <Link to="/" className="text-gray-700 hover:text-red-600 text-lg font-medium text-center my-2" onClick={toggleMenu}>
                             Home
