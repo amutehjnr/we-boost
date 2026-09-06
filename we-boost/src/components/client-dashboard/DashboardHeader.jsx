@@ -58,41 +58,41 @@ export default function Header({ setSidebarOpen, sidebarOpen, isClient, userMode
       </div>
 
       {/* RIGHT SECTION */}
-      <div className="flex items-center gap-5">
-        <FaBell className="text-gray-600 dark:text-gray-300 text-xl cursor-pointer" />
+      <div className="flex items-center gap-3 sm:gap-5">
+        <FaBell className="hidden sm:block text-gray-600 dark:text-gray-300 text-xl cursor-pointer shrink-0" />
 
         {theme === "dark" ? (
           <FaSun
             onClick={toggleTheme}
-            className="text-yellow-400 text-xl cursor-pointer"
+            className="text-yellow-400 text-xl cursor-pointer shrink-0"
           />
         ) : (
           <FaMoon
             onClick={toggleTheme}
-            className="text-gray-600 text-xl cursor-pointer"
+            className="text-gray-600 text-xl cursor-pointer shrink-0"
           />
         )}
 
         {/* USER PROFILE — now links to the profile page */}
-        <Link to="/profile" className="flex items-center gap-2 cursor-pointer">
+        <Link to="/profile" className="flex items-center gap-2 cursor-pointer min-w-0">
           {/* Image OR initials */}
           {user?.photoUrl ? (
             <img
               src={user.photoUrl}
               alt="User"
-              className="w-9 h-9 rounded-full object-cover"
+              className="w-9 h-9 rounded-full object-cover shrink-0"
               onError={(e) => {
                 e.target.onerror = null;
                 setUser((prev) => ({ ...prev, photoUrl: null }));
               }}
             />
           ) : (
-            <div className="w-9 h-9 bg-gray-200 dark:bg-gray-700 rounded-full flex justify-center items-center text-gray-800 dark:text-gray-100 font-semibold">
+            <div className="w-9 h-9 shrink-0 bg-gray-200 dark:bg-gray-700 rounded-full flex justify-center items-center text-gray-800 dark:text-gray-100 font-semibold">
               {getInitials(user?.fullName)}
             </div>
           )}
 
-          <span className="text-gray-700 dark:text-gray-300 text-sm">
+          <span className="hidden sm:block text-gray-700 dark:text-gray-300 text-sm truncate max-w-[120px]">
             {user?.fullName || ""}
           </span>
         </Link>
@@ -100,7 +100,7 @@ export default function Header({ setSidebarOpen, sidebarOpen, isClient, userMode
         <button
           onClick={handleLogout}
           title="Log out"
-          className="text-gray-600 dark:text-gray-300 hover:text-red-600 text-xl"
+          className="shrink-0 text-gray-600 dark:text-gray-300 hover:text-red-600 text-xl"
         >
           <FaSignOutAlt />
         </button>

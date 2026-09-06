@@ -90,6 +90,14 @@ export default function UserDashboardLayout({ isClient, userModeToggle }) {
       >
         {!isClient ? (
           <>
+            {/* Backdrop — tapping outside the sidebar closes it on mobile */}
+            {sidebarOpen && (
+              <div
+                onClick={() => setSidebarOpen(false)}
+                className="fixed inset-0 bg-black/40 z-20 lg:hidden"
+              />
+            )}
+
             {/* Sidebar */}
             <aside
               className={`fixed lg:static z-30 top-0 left-0 h-full w-64 bg-white dark:bg-[#181818] shadow-md border-r dark:border-gray-800 transform ${
@@ -147,8 +155,8 @@ export default function UserDashboardLayout({ isClient, userModeToggle }) {
                 </div>
 
                 {/* User Info + Theme Toggle */}
-                <div className="flex items-center gap-5">
-                  <button onClick={toggleTheme}>
+                <div className="flex items-center gap-3 sm:gap-5">
+                  <button onClick={toggleTheme} className="shrink-0">
                     {theme === "dark" ? (
                       <FaSun className="text-yellow-400 text-xl" />
                     ) : (
@@ -156,20 +164,20 @@ export default function UserDashboardLayout({ isClient, userModeToggle }) {
                     )}
                   </button>
 
-                  <Link to="/user-dashboard/settings" className="flex items-center gap-2 cursor-pointer">
+                  <Link to="/user-dashboard/settings" className="flex items-center gap-2 cursor-pointer min-w-0">
                     {user?.photoUrl ? (
                       <img
                         src={user.photoUrl}
                         alt="User"
-                        className="w-9 h-9 rounded-full object-cover"
+                        className="w-9 h-9 rounded-full object-cover shrink-0"
                       />
                     ) : (
-                      <div className="w-9 h-9 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center font-semibold text-gray-800 dark:text-gray-100">
+                      <div className="w-9 h-9 shrink-0 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center font-semibold text-gray-800 dark:text-gray-100">
                         {getInitials(user?.fullName)}
                       </div>
                     )}
 
-                    <span className="text-gray-700 dark:text-gray-300 text-sm font-medium">
+                    <span className="hidden sm:block text-gray-700 dark:text-gray-300 text-sm font-medium truncate max-w-[120px]">
                       {user?.fullName || ""}
                     </span>
                   </Link>
@@ -177,7 +185,7 @@ export default function UserDashboardLayout({ isClient, userModeToggle }) {
                   <button
                     onClick={handleLogout}
                     title="Log out"
-                    className="text-gray-500 dark:text-gray-300 hover:text-red-600 text-xl"
+                    className="shrink-0 text-gray-500 dark:text-gray-300 hover:text-red-600 text-xl"
                   >
                     <FaSignOutAlt />
                   </button>

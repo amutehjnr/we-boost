@@ -17,7 +17,7 @@ export default function DashboardLayout({
       <div className="h-screen flex overflow-hidden bg-gray-50 dark:bg-[#0f0f0f]">
         
         {/* SIDEBAR */}
-        <Sidebar sidebarOpen={sidebarOpen} />
+        <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
         {/* RIGHT CONTENT */}
         <div className="flex-1 flex flex-col">
