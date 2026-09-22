@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './index.css';
 import { Routes, Route, useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { signOut } from "firebase/auth";
 import ProtectedRoute from './route-module/ProtectedRoute';
 import ChatWidget from './components/ChatWidget';
 import ForgotPassword from './components/ForgotPassword';
@@ -46,46 +46,10 @@ import API from './lib/api';
 function App() {
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState("");   // State for email input
-  const [password, setPassword] = useState("");   // State for password input
-  const [error, setError] = useState("");   // State for error messages
   const [darkMode, setDarkMode] = useState(false); // State for dark mode toggle
-  const [loading, setLoading] = useState(false);  // State for loading indicator
   const [isClient, setIsClient] = useState(true); // State for client mode
 
   const [user] = useAuthState(auth); // Get current user from Firebase Auth
-
- // 🧩 Validation and login handler
-  const handleSignIn = async (e) => {
-    e.preventDefault();
-    setError("");
-
-    // Basic validation
-    if (!email) return setError("Email is required.");
-    if (!/\S+@\S+\.\S+/.test(email)) return setError("Please enter a valid email.");
-    if (password.length < 8)
-      return setError("Password must be at least 8 characters long.");
-
-    try {
-      setLoading(true);
-      await signInWithEmailAndPassword(auth, email, password);
-      // ✅ Redirect to dashboard after successful login
-      navigate(isClient ? "/dashboard" : "/user-dashboard");
-    } catch (error) {
-      // 🧾 Handle Firebase auth errors nicely
-      if (error.code === "auth/invalid-credential") {
-        setError("Invalid email or password. Please try again.");
-      } else if (error.code === "auth/user-not-found") {
-        setError("No user found with this email.");
-      } else if (error.code === "auth/wrong-password") {
-        setError("Incorrect password. Try again.");
-      } else {
-        setError("Something went wrong. Please try again later.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Function to handle logout
   const handleLogout = async () => {
@@ -105,6 +69,15 @@ function App() {
   // signed in — isClient must reflect the database, not just default to true.
   useEffect(() => {
     if (!user) return;
+
+    // Firebase's auth state (and therefore `user`) can update before the
+    // backend login exchange (SignIn.jsx / AdminLogin.jsx) has finished
+    // storing our own JWT in localStorage. Calling /users/profile before
+    // that JWT exists always 401s, since verifyJWT expects our backend
+    // token, not the raw Firebase ID token. Skip until it's actually there;
+    // the next mount (after the post-login redirect) will have it.
+    const token = localStorage.getItem("token");
+    if (!token) return;
 
     API.get("/users/profile")
       .then((res) => {
@@ -143,15 +116,7 @@ function App() {
         <Route path='/signup' element={<SignUp />} />
         <Route path='/verify-email' element={<VerifyEmail />} />
         <Route path='/forgot-password' element={<ForgotPassword />} />
-        <Route path='/signin' element={<SignIn
-          email={email}
-          setEmail={setEmail}
-          password={password}
-          setPassword={setPassword}
-          error={error}
-          handleSignIn={handleSignIn}
-          loading={loading}
-        />} />
+        <Route path='/signin' element={<SignIn />} />
         <Route path='/admin-login' element={<AdminLogin />} />
         <Route path='/services' element={<Services handleLogout={handleLogout} user={user} isClient={isClient} userModeToggle={userModeToggle} />} />
         <Route path='/pricing' element={<Pricing handleLogout={handleLogout} user={user} isClient={isClient} userModeToggle={userModeToggle} />} />
