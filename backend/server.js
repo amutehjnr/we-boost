@@ -50,6 +50,7 @@ app.use(cors({
       "https://we-boost.vercel.app",
       "http://localhost:3000",
       "https://we-boost-64ej.vercel.app",
+      "https://weboosthq.com"
     ],
   credentials: true
 }));
