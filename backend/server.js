@@ -47,11 +47,12 @@ const initDb = () => {
 app.use(helmet());
 app.use(cors({
   origin: [
-      "https://we-boost.vercel.app",
-      "http://localhost:3000",
-      "https://we-boost-64ej.vercel.app",
-      "https://weboosthq.com"
-    ],
+    "https://www.weboosthq.com",
+    "https://weboosthq.com",
+    "https://we-boost.vercel.app",
+    "https://we-boost-64ej.vercel.app",
+    "http://localhost:3000"
+  ],
   credentials: true
 }));
 
