@@ -473,23 +473,29 @@ router.get('/oauth/twitch/callback', async (req, res) => {
 
 router.post('/oauth/telegram/verify', verifyJWT, async (req, res) => {
   try {
-    const { id, first_name, username, photo_url, auth_date, hash } = req.body;
+    const { id, first_name, username, auth_date, hash } = req.body;
 
     if (!id || !hash || !auth_date) {
       return res.status(400).json({ success: false, message: 'Invalid Telegram login data' });
     }
 
-    // Reject stale login attempts (Telegram recommends checking this)
+    if (!process.env.TELEGRAM_BOT_TOKEN) {
+      console.error('TELEGRAM_BOT_TOKEN is not set');
+      return res.status(500).json({ success: false, message: 'Telegram is not configured' });
+    }
+
+    // Reject stale login attempts
     const authAge = Math.floor(Date.now() / 1000) - Number(auth_date);
     if (authAge > 86400) {
       return res.status(400).json({ success: false, message: 'Telegram login expired, please try again' });
     }
 
-    // Verify the signature: sort all fields except hash, join as
-    // "key=value" lines, HMAC-SHA256 it with SHA256(bot_token) as the key.
-    const dataCheck = { id, first_name, username, photo_url, auth_date };
+    // Official algorithm: hash ALL received fields except `hash`
+    const dataCheck = { ...req.body };
+    delete dataCheck.hash;
+
     const checkString = Object.keys(dataCheck)
-      .filter((key) => dataCheck[key] !== undefined)
+      .filter((key) => dataCheck[key] !== undefined && dataCheck[key] !== null)
       .sort()
       .map((key) => `${key}=${dataCheck[key]}`)
       .join('\n');
@@ -498,11 +504,16 @@ router.post('/oauth/telegram/verify', verifyJWT, async (req, res) => {
     const computedHash = crypto.createHmac('sha256', secretKey).update(checkString).digest('hex');
 
     if (computedHash !== hash) {
+      console.error('Telegram hash mismatch', {
+        receivedFields: Object.keys(dataCheck).sort(),
+        checkStringPreview: checkString.slice(0, 120)
+      });
       return res.status(401).json({ success: false, message: 'Telegram login verification failed' });
     }
 
     await saveLinkedAccount({
-      userId: req.user.id, platform: 'Telegram',
+      userId: req.user.id,
+      platform: 'Telegram',
       username: username || first_name,
       platformUserId: String(id),
       accessToken: null
