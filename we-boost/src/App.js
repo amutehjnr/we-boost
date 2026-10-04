@@ -192,6 +192,11 @@ function App() {
             <AdminChat />
           </AdminRoute>
         } />
+        <Route path='/admin/bank-settings' element={
+          <AdminRoute>
+            <AdminBankSettings />
+          </AdminRoute>
+        } />
         <Route path='/dashboard/add-funds' element={
           <ProtectedRoute>
             <AddFunds isClient={isClient} userModeToggle={userModeToggle} />
@@ -243,11 +248,6 @@ function App() {
             <ProtectedRoute>
               <Settings isClient={isClient} userModeToggle={userModeToggle} />
             </ProtectedRoute>
-          } />
-          <Route path='/admin/bank-settings' element={
-            <AdminRoute>
-              <AdminBankSettings />
-            </AdminRoute>
           } />
         </Route>
       </Routes>
