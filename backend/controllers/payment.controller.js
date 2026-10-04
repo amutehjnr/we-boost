@@ -5,67 +5,16 @@ const crypto = require('crypto');
 const axios = require('axios');
 const { sendPaymentSuccessEmail, sendWithdrawalStatusEmail } = require('../utils/email');
 
-// Paystack configuration
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
-// Flutterwave configuration
 const FLW_SECRET = process.env.FLUTTERWAVE_SECRET_KEY;
 const FLW_BASE_URL = 'https://api.flutterwave.com/v3';
 
-// @desc    Initialize payment (Paystack/Flutterwave)
+// @desc    Initialize payment (Paystack / Flutterwave / Manual)
 // @route   POST /api/payments/initialize
 // @access  Private
 exports.initializePayment = async (req, res) => {
-  const isManual = paymentGateway === 'Manual' || paymentGateway === 'Bank Transfer';
-  const resolvedGateway = isManual ? 'Manual' : paymentGateway;
-  const paymentMethod = isManual ? 'Bank Transfer' : 'Card';
-
-  const payment = await Payment.create({
-    userId: user.id,
-    type: 'Deposit',
-    amount,
-    paymentMethod,
-    paymentGateway: resolvedGateway,
-    status: 'Pending',
-    previousBalance: user.walletBalance,
-    description: isManual ? 'Manual bank transfer deposit' : null
-  });
-
-  // ---- Manual bank transfer ----
-  if (isManual) {
-    let stored = null;
-    try {
-      const row = await PlatformSetting.findOne({ where: { key: 'bank_details' } });
-      stored = row?.value || null;
-    } catch (e) {
-      console.error('Failed to load bank_details setting:', e.message);
-    }
-
-    const bankDetails = {
-      bankName: stored?.bankName || process.env.BANK_NAME || 'Not configured',
-      accountName: stored?.accountName || process.env.BANK_ACCOUNT_NAME || 'Not configured',
-      accountNumber: stored?.accountNumber || process.env.BANK_ACCOUNT_NUMBER || 'Not configured',
-      amount,
-      reference: payment.transactionId,
-      note: stored?.note || 'Use the reference as your transfer narration so we can match your payment.'
-    };
-
-    await payment.update({
-      metadata: { bankDetails, instructions: bankDetails.note }
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: 'Bank transfer initiated. Transfer the exact amount using the reference as narration.',
-      data: {
-        reference: payment.transactionId,
-        paymentId: payment.id,
-        bankDetails,
-        status: 'Pending'
-      }
-    });
-  }
   try {
     const { amount, paymentGateway = 'Paystack' } = req.body;
     const user = req.user;
@@ -77,26 +26,64 @@ exports.initializePayment = async (req, res) => {
       });
     }
 
-    // Create payment record
+    const isManual = paymentGateway === 'Manual' || paymentGateway === 'Bank Transfer';
+    const resolvedGateway = isManual ? 'Manual' : paymentGateway;
+    const paymentMethod = isManual ? 'Bank Transfer' : 'Card';
+
     const payment = await Payment.create({
       userId: user.id,
       type: 'Deposit',
       amount,
-      paymentMethod: 'Card',
-      paymentGateway,
+      paymentMethod,
+      paymentGateway: resolvedGateway,
       status: 'Pending',
-      previousBalance: user.walletBalance
+      previousBalance: user.walletBalance,
+      description: isManual ? 'Manual bank transfer deposit' : null
     });
+
+    // ---- Manual bank transfer ----
+    if (isManual) {
+      let stored = null;
+      try {
+        const row = await PlatformSetting.findOne({ where: { key: 'bank_details' } });
+        stored = row?.value || null;
+      } catch (e) {
+        console.error('Failed to load bank_details setting:', e.message);
+      }
+
+      const bankDetails = {
+        bankName: stored?.bankName || process.env.BANK_NAME || 'Not configured',
+        accountName: stored?.accountName || process.env.BANK_ACCOUNT_NAME || 'Not configured',
+        accountNumber: stored?.accountNumber || process.env.BANK_ACCOUNT_NUMBER || 'Not configured',
+        amount,
+        reference: payment.transactionId,
+        note: stored?.note || 'Use the reference as your transfer narration so we can match your payment.'
+      };
+
+      await payment.update({
+        metadata: { bankDetails, instructions: bankDetails.note }
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Bank transfer initiated. Transfer the exact amount using the reference as narration.',
+        data: {
+          reference: payment.transactionId,
+          paymentId: payment.id,
+          bankDetails,
+          status: 'Pending'
+        }
+      });
+    }
 
     let response;
 
     if (paymentGateway === 'Paystack') {
-      // Initialize Paystack transaction
       response = await axios.post(
         `${PAYSTACK_BASE_URL}/transaction/initialize`,
         {
           email: user.email,
-          amount: amount * 100, // Convert to kobo
+          amount: amount * 100,
           reference: payment.transactionId,
           callback_url: `${process.env.FRONTEND_URL}/dashboard/add-funds?reference=${payment.transactionId}`,
           metadata: {
@@ -126,8 +113,9 @@ exports.initializePayment = async (req, res) => {
           reference: payment.transactionId
         }
       });
-    } else if (paymentGateway === 'Flutterwave') {
-      // Initialize Flutterwave transaction
+    }
+
+    if (paymentGateway === 'Flutterwave') {
       response = await axios.post(
         `${FLW_BASE_URL}/payments`,
         {
@@ -165,6 +153,11 @@ exports.initializePayment = async (req, res) => {
         }
       });
     }
+
+    return res.status(400).json({
+      success: false,
+      message: 'Unsupported payment gateway'
+    });
   } catch (error) {
     console.error('Initialize payment error:', error.response?.data || error);
     res.status(500).json({
@@ -180,7 +173,7 @@ exports.initializePayment = async (req, res) => {
 // @access  Private
 exports.verifyPayment = async (req, res) => {
   const transaction = await sequelize.transaction();
-  
+
   try {
     const { reference } = req.params;
 
@@ -206,17 +199,10 @@ exports.verifyPayment = async (req, res) => {
       });
     }
 
-    let verificationResponse;
-
     if (payment.paymentGateway === 'Paystack') {
-      // Verify with Paystack
-      verificationResponse = await axios.get(
+      const verificationResponse = await axios.get(
         `${PAYSTACK_BASE_URL}/transaction/verify/${reference}`,
-        {
-          headers: {
-            Authorization: `Bearer ${PAYSTACK_SECRET}`
-          }
-        }
+        { headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` } }
       );
 
       const data = verificationResponse.data.data;
@@ -226,7 +212,6 @@ exports.verifyPayment = async (req, res) => {
         const newBalance = parseFloat(user.walletBalance) + parseFloat(payment.amount);
 
         await user.update({ walletBalance: newBalance }, { transaction });
-        
         await payment.update({
           status: 'Successful',
           newBalance,
@@ -236,7 +221,6 @@ exports.verifyPayment = async (req, res) => {
         }, { transaction });
 
         await transaction.commit();
-
         sendPaymentSuccessEmail(user.email, user.fullName, payment.amount);
 
         return res.status(200).json({
@@ -246,14 +230,9 @@ exports.verifyPayment = async (req, res) => {
         });
       }
     } else if (payment.paymentGateway === 'Flutterwave') {
-      // Verify with Flutterwave
-      verificationResponse = await axios.get(
+      const verificationResponse = await axios.get(
         `${FLW_BASE_URL}/transactions/${reference}/verify`,
-        {
-          headers: {
-            Authorization: `Bearer ${FLW_SECRET}`
-          }
-        }
+        { headers: { Authorization: `Bearer ${FLW_SECRET}` } }
       );
 
       const data = verificationResponse.data.data;
@@ -263,7 +242,6 @@ exports.verifyPayment = async (req, res) => {
         const newBalance = parseFloat(user.walletBalance) + parseFloat(payment.amount);
 
         await user.update({ walletBalance: newBalance }, { transaction });
-        
         await payment.update({
           status: 'Successful',
           newBalance,
@@ -273,7 +251,6 @@ exports.verifyPayment = async (req, res) => {
         }, { transaction });
 
         await transaction.commit();
-
         sendPaymentSuccessEmail(user.email, user.fullName, payment.amount);
 
         return res.status(200).json({
@@ -317,21 +294,16 @@ exports.paystackWebhook = async (req, res) => {
     const event = req.body;
 
     if (event.event === 'charge.success') {
-      const { reference, amount, customer } = event.data;
-      
-      const payment = await Payment.findOne({
-        where: { transactionId: reference }
-      });
+      const { reference } = event.data;
+      const payment = await Payment.findOne({ where: { transactionId: reference } });
 
       if (payment && payment.status === 'Pending') {
         const transaction = await sequelize.transaction();
-        
         try {
           const user = await User.findByPk(payment.userId, { transaction });
           const newBalance = parseFloat(user.walletBalance) + parseFloat(payment.amount);
 
           await user.update({ walletBalance: newBalance }, { transaction });
-          
           await payment.update({
             status: 'Successful',
             newBalance,
@@ -348,15 +320,9 @@ exports.paystackWebhook = async (req, res) => {
       }
     }
 
-    // Withdrawal payouts — Paystack confirms the actual bank transfer
-    // asynchronously here, since a transfer can succeed or fail some
-    // time after it was initiated.
     if (['transfer.success', 'transfer.failed', 'transfer.reversed'].includes(event.event)) {
       const { transfer_code, reference } = event.data;
-
-      const withdrawal = await Withdrawal.findOne({
-        where: { transferCode: transfer_code }
-      });
+      const withdrawal = await Withdrawal.findOne({ where: { transferCode: transfer_code } });
 
       if (withdrawal) {
         const dbTransaction = await sequelize.transaction();
@@ -377,7 +343,6 @@ exports.paystackWebhook = async (req, res) => {
             emailUser = user;
             emailStatus = 'Completed';
           } else if (['transfer.failed', 'transfer.reversed'].includes(event.event) && withdrawal.status !== 'Rejected') {
-            // Refund the wallet since the money never actually left
             const user = await User.findByPk(withdrawal.userId, { transaction: dbTransaction });
             await user.update({
               walletBalance: parseFloat(user.walletBalance) + parseFloat(withdrawal.amount)
@@ -486,4 +451,112 @@ exports.getPayment = async (req, res) => {
   }
 };
 
-module.exports = exports;
+// @desc    Admin approve manual bank transfer
+// @route   POST /api/admin/payments/:id/approve
+// @access  Admin
+exports.approveManualPayment = async (req, res) => {
+  const dbTransaction = await sequelize.transaction();
+  try {
+    const payment = await Payment.findByPk(req.params.id, { transaction: dbTransaction });
+
+    if (!payment) {
+      await dbTransaction.rollback();
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+
+    if (payment.paymentGateway !== 'Manual') {
+      await dbTransaction.rollback();
+      return res.status(400).json({ success: false, message: 'Only manual bank transfers can be approved this way' });
+    }
+
+    if (payment.status === 'Successful') {
+      await dbTransaction.rollback();
+      return res.status(200).json({ success: true, message: 'Payment already approved', data: payment });
+    }
+
+    if (payment.status !== 'Pending' && payment.status !== 'Processing') {
+      await dbTransaction.rollback();
+      return res.status(400).json({ success: false, message: `Cannot approve payment with status ${payment.status}` });
+    }
+
+    const user = await User.findByPk(payment.userId, { transaction: dbTransaction });
+    if (!user) {
+      await dbTransaction.rollback();
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const newBalance = parseFloat(user.walletBalance) + parseFloat(payment.amount);
+
+    await user.update({ walletBalance: newBalance }, { transaction: dbTransaction });
+    await payment.update({
+      status: 'Successful',
+      newBalance,
+      paidAt: new Date(),
+      verifiedAt: new Date(),
+      metadata: {
+        ...(payment.metadata || {}),
+        approvedBy: req.user.id,
+        approvedAt: new Date().toISOString(),
+        adminNote: req.body.note || null
+      }
+    }, { transaction: dbTransaction });
+
+    await dbTransaction.commit();
+    sendPaymentSuccessEmail(user.email, user.fullName, payment.amount);
+
+    res.status(200).json({
+      success: true,
+      message: 'Manual deposit approved and wallet credited',
+      data: payment
+    });
+  } catch (error) {
+    await dbTransaction.rollback();
+    console.error('Approve manual payment error:', error);
+    res.status(500).json({ success: false, message: 'Error approving payment', error: error.message });
+  }
+};
+
+// @desc    Admin reject manual bank transfer
+// @route   POST /api/admin/payments/:id/reject
+// @access  Admin
+exports.rejectManualPayment = async (req, res) => {
+  try {
+    const payment = await Payment.findByPk(req.params.id);
+
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+
+    if (payment.paymentGateway !== 'Manual') {
+      return res.status(400).json({ success: false, message: 'Only manual bank transfers can be rejected this way' });
+    }
+
+    if (payment.status === 'Successful') {
+      return res.status(400).json({ success: false, message: 'Cannot reject an already successful payment' });
+    }
+
+    if (payment.status === 'Failed' || payment.status === 'Cancelled') {
+      return res.status(200).json({ success: true, message: 'Payment already rejected', data: payment });
+    }
+
+    await payment.update({
+      status: 'Failed',
+      failureReason: req.body.reason || 'Bank transfer not received or details did not match',
+      metadata: {
+        ...(payment.metadata || {}),
+        rejectedBy: req.user.id,
+        rejectedAt: new Date().toISOString(),
+        reason: req.body.reason || null
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Manual deposit rejected',
+      data: payment
+    });
+  } catch (error) {
+    console.error('Reject manual payment error:', error);
+    res.status(500).json({ success: false, message: 'Error rejecting payment', error: error.message });
+  }
+};
