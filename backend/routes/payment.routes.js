@@ -4,6 +4,7 @@ const paymentController = require('../controllers/payment.controller');
 const { verifyJWT } = require('../middleware/auth');
 
 router.post('/initialize', verifyJWT, paymentController.initializePayment);
+router.get('/bank-details', verifyJWT, paymentController.getBankDetails);
 router.get('/verify/:reference', verifyJWT, paymentController.verifyPayment);
 router.get('/', verifyJWT, paymentController.getPaymentHistory);
 router.get('/:id', verifyJWT, paymentController.getPayment);

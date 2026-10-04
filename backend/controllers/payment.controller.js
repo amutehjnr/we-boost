@@ -560,3 +560,40 @@ exports.rejectManualPayment = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error rejecting payment', error: error.message });
   }
 };
+
+// @desc    Get platform bank details for manual deposits
+// @route   GET /api/payments/bank-details
+// @access  Private
+exports.getBankDetails = async (req, res) => {
+  try {
+    let stored = null;
+    try {
+      const row = await PlatformSetting.findOne({ where: { key: 'bank_details' } });
+      stored = row?.value || null;
+    } catch (e) {
+      console.error('Failed to load bank_details setting:', e.message);
+    }
+
+    const data = {
+      bankName: stored?.bankName || process.env.BANK_NAME || '',
+      accountName: stored?.accountName || process.env.BANK_ACCOUNT_NAME || '',
+      accountNumber: stored?.accountNumber || process.env.BANK_ACCOUNT_NUMBER || '',
+      note: stored?.note || 'Use the payment reference as your transfer narration.'
+    };
+
+    const configured = Boolean(
+      data.bankName && data.accountName && data.accountNumber
+    );
+
+    res.status(200).json({
+      success: true,
+      data: { ...data, configured }
+    });
+  } catch (error) {
+    console.error('Get bank details error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching bank details'
+    });
+  }
+};
