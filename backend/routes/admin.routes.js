@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const { User, Order, Withdrawal, Payment, Task } = require('../models');
 const { verifyJWT, authorize } = require('../middleware/auth');
 const { User, Order, Withdrawal, Payment, Task, PlatformSetting } = require('../models');
 const paymentController = require('../controllers/payment.controller');
