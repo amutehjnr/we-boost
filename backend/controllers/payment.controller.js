@@ -1,10 +1,9 @@
 // controllers/payment.controller.js
-const { Payment, User, Withdrawal } = require('../models');
+const { Payment, User, Withdrawal, PlatformSetting } = require('../models');
 const { sequelize } = require('../config/database');
 const crypto = require('crypto');
 const axios = require('axios');
 const { sendPaymentSuccessEmail, sendWithdrawalStatusEmail } = require('../utils/email');
-const { Payment, User, Withdrawal, PlatformSetting } = require('../models');
 
 // Paystack configuration
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
