@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { User, Order, Withdrawal, Payment, Task } = require('../models');
 const { verifyJWT, authorize } = require('../middleware/auth');
+const { User, Order, Withdrawal, Payment, Task, PlatformSetting } = require('../models');
+const paymentController = require('../controllers/payment.controller');
 
 // Every route here requires a logged-in admin
 router.use(verifyJWT, authorize('admin'));
@@ -187,5 +189,66 @@ router.get('/payments', async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
+// ---- Bank details settings (manual deposits) ----
+router.get('/settings/bank', async (req, res) => {
+  try {
+    const row = await PlatformSetting.findOne({ where: { key: 'bank_details' } });
+    const value = row?.value || {
+      bankName: process.env.BANK_NAME || '',
+      accountName: process.env.BANK_ACCOUNT_NAME || '',
+      accountNumber: process.env.BANK_ACCOUNT_NUMBER || '',
+      note: 'Use the reference as your transfer narration so we can match your payment.'
+    };
+    res.json({ success: true, data: value });
+  } catch (error) {
+    console.error('Get bank settings error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.put('/settings/bank', async (req, res) => {
+  try {
+    const { bankName, accountName, accountNumber, note } = req.body;
+
+    if (!bankName || !accountName || !accountNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'bankName, accountName and accountNumber are required'
+      });
+    }
+
+    const value = {
+      bankName: String(bankName).trim(),
+      accountName: String(accountName).trim(),
+      accountNumber: String(accountNumber).trim(),
+      note: note
+        ? String(note).trim()
+        : 'Use the reference as your transfer narration so we can match your payment.',
+      updatedBy: req.user.id,
+      updatedAt: new Date().toISOString()
+    };
+
+    const [row, created] = await PlatformSetting.findOrCreate({
+      where: { key: 'bank_details' },
+      defaults: { key: 'bank_details', value }
+    });
+
+    if (!created) {
+      await row.update({ value });
+    }
+
+    res.json({ success: true, message: 'Bank details updated', data: value });
+  } catch (error) {
+    console.error('Update bank settings error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Approve pending manual bank transfer deposit
+router.post('/payments/:id/approve', paymentController.approveManualPayment);
+
+// Reject pending manual bank transfer deposit
+router.post('/payments/:id/reject', paymentController.rejectManualPayment);
 
 module.exports = router;

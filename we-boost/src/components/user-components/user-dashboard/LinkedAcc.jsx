@@ -9,7 +9,7 @@ import API from "../../../lib/api";
 // of a manual prompt. Telegram is handled separately via its own widget.
 const PLATFORMS = [
   { name: "Facebook", icon: <FaFacebook className="text-blue-600" />, key: "Facebook", oauth: true },
-  { name: "Instagram", icon: <FaInstagram className="text-pink-500" />, key: "Instagram", oauth: true },
+  { name: "Instagram", icon: <FaInstagram className="text-pink-500" />, key: "Instagram" },
   { name: "TikTok", icon: <FaTiktok className="text-black dark:text-white" />, key: "TikTok", oauth: true },
   { name: "Twitter (X)", icon: <FaTwitter className="text-sky-500" />, key: "Twitter", oauth: true },
   { name: "YouTube", icon: <FaYoutube className="text-red-600" />, key: "YouTube", oauth: true },

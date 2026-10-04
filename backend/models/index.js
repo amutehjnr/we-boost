@@ -7,6 +7,7 @@ const Withdrawal = require('./Withdrawal');
 const LinkedAccount = require('./LinkedAccount');
 const Conversation = require('./Conversation');
 const Message = require('./Message');
+const PlatformSetting = require('./PlatformSetting');
 
 // User-Order Associations
 User.hasMany(Order, { foreignKey: 'userId', as: 'orders' });
@@ -60,5 +61,6 @@ module.exports = {
   Withdrawal,
   LinkedAccount,
   Conversation,
-  Message
+  Message,
+  PlatformSetting
 };

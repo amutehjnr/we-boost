@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FaChartBar, FaUsers, FaMoneyCheckAlt, FaShoppingCart, FaTasks, FaCreditCard, FaSignOutAlt, FaComments } from "react-icons/fa";
+import { FaChartBar, FaUsers, FaMoneyCheckAlt, FaShoppingCart, FaTasks, FaCreditCard, FaSignOutAlt, FaComments, FaUniversity } from "react-icons/fa";
 import { signOut } from "firebase/auth";
 import { auth } from "../../firebase";
 import { useTheme } from "../../context/ThemeContext";
@@ -23,6 +23,7 @@ export default function AdminLayout({ children }) {
     { path: "/admin/chat", label: "Live Chat", icon: <FaComments /> },
     { path: "/admin/withdrawals", label: "Withdrawals", icon: <FaMoneyCheckAlt /> },
     { path: "/admin/users", label: "Users", icon: <FaUsers /> },
+    { path: "/admin/bank-settings", label: "Bank Details", icon: <FaUniversity /> },
   ];
 
   return (

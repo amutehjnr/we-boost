@@ -42,6 +42,7 @@ import LinkedAccounts from './components/user-components/user-dashboard/LinkedAc
 import Withdraw from './components/user-components/user-dashboard/Withdraw';
 import Settings from './components/user-components/user-dashboard/Settings';
 import API from './lib/api';
+import AdminBankSettings from './components/admin/AdminBankSettings';
 
 function App() {
   const navigate = useNavigate();
@@ -242,6 +243,11 @@ function App() {
             <ProtectedRoute>
               <Settings isClient={isClient} userModeToggle={userModeToggle} />
             </ProtectedRoute>
+          } />
+          <Route path='/admin/bank-settings' element={
+            <AdminRoute>
+              <AdminBankSettings />
+            </AdminRoute>
           } />
         </Route>
       </Routes>

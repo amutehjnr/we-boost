@@ -4,6 +4,7 @@ const { sequelize } = require('../config/database');
 const crypto = require('crypto');
 const axios = require('axios');
 const { sendPaymentSuccessEmail, sendWithdrawalStatusEmail } = require('../utils/email');
+const { Payment, User, Withdrawal, PlatformSetting } = require('../models');
 
 // Paystack configuration
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
@@ -17,6 +18,55 @@ const FLW_BASE_URL = 'https://api.flutterwave.com/v3';
 // @route   POST /api/payments/initialize
 // @access  Private
 exports.initializePayment = async (req, res) => {
+  const isManual = paymentGateway === 'Manual' || paymentGateway === 'Bank Transfer';
+  const resolvedGateway = isManual ? 'Manual' : paymentGateway;
+  const paymentMethod = isManual ? 'Bank Transfer' : 'Card';
+
+  const payment = await Payment.create({
+    userId: user.id,
+    type: 'Deposit',
+    amount,
+    paymentMethod,
+    paymentGateway: resolvedGateway,
+    status: 'Pending',
+    previousBalance: user.walletBalance,
+    description: isManual ? 'Manual bank transfer deposit' : null
+  });
+
+  // ---- Manual bank transfer ----
+  if (isManual) {
+    let stored = null;
+    try {
+      const row = await PlatformSetting.findOne({ where: { key: 'bank_details' } });
+      stored = row?.value || null;
+    } catch (e) {
+      console.error('Failed to load bank_details setting:', e.message);
+    }
+
+    const bankDetails = {
+      bankName: stored?.bankName || process.env.BANK_NAME || 'Not configured',
+      accountName: stored?.accountName || process.env.BANK_ACCOUNT_NAME || 'Not configured',
+      accountNumber: stored?.accountNumber || process.env.BANK_ACCOUNT_NUMBER || 'Not configured',
+      amount,
+      reference: payment.transactionId,
+      note: stored?.note || 'Use the reference as your transfer narration so we can match your payment.'
+    };
+
+    await payment.update({
+      metadata: { bankDetails, instructions: bankDetails.note }
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Bank transfer initiated. Transfer the exact amount using the reference as narration.',
+      data: {
+        reference: payment.transactionId,
+        paymentId: payment.id,
+        bankDetails,
+        status: 'Pending'
+      }
+    });
+  }
   try {
     const { amount, paymentGateway = 'Paystack' } = req.body;
     const user = req.user;
