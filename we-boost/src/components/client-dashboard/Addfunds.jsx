@@ -163,9 +163,17 @@ export default function AddFunds({ isClient, userModeToggle }) {
             className={`text-2xl ${isDark ? "text-red-500" : "text-red-600"}`}
           />
           <h1 className="text-2xl md:text-3xl font-bold">Add Funds</h1>
+        </div>
+        <div
+          className={`text-sm p-3 rounded-md max-w-xl ${
+            isDark
+            ? "bg-yellow-900/25 text-yellow-200 border border-yellow-800/40"
+            : "bg-yellow-50 text-yellow-900 border border-yellow-200"
+          }`}
+        >
           <strong>Note:</strong> Paystack card payments are temporarily
-          unavailable. Please use <strong>Bank Transfer (Manual)</strong>{" "}
-          to fund your wallet.
+          unavailable. Please use <strong>Bank Transfer (Manual)</strong> to
+          fund your wallet.
         </div>
 
         <div className="px-4 md:px-8 pb-10">
