@@ -8,9 +8,9 @@ import API from "../../../lib/api";
 // oauth: true means "Connect" does a real redirect-based login instead
 // of a manual prompt. Telegram is handled separately via its own widget.
 const PLATFORMS = [
-  { name: "Facebook", icon: <FaFacebook className="text-blue-600" />, key: "Facebook", oauth: true },
+  { name: "Facebook", icon: <FaFacebook className="text-blue-600" />, key: "Facebook", },
   { name: "Instagram", icon: <FaInstagram className="text-pink-500" />, key: "Instagram" },
-  { name: "TikTok", icon: <FaTiktok className="text-black dark:text-white" />, key: "TikTok", oauth: true },
+  { name: "TikTok", icon: <FaTiktok className="text-black dark:text-white" />, key: "TikTok", },
   { name: "Twitter (X)", icon: <FaTwitter className="text-sky-500" />, key: "Twitter", oauth: true },
   { name: "YouTube", icon: <FaYoutube className="text-red-600" />, key: "YouTube", oauth: true },
   { name: "Spotify", icon: <FaSpotify className="text-green-500" />, key: "Spotify", oauth: true },
