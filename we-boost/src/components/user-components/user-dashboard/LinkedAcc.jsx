@@ -1,16 +1,29 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { FaFacebook, FaInstagram, FaTiktok, FaTwitter, FaYoutube, FaSpotify, FaLinkedin, FaTwitch, FaTelegram, FaCheckCircle, FaLink, FaTimes } from "react-icons/fa";
+import {
+  FaFacebook,
+  FaInstagram,
+  FaTiktok,
+  FaTwitter,
+  FaYoutube,
+  FaSpotify,
+  FaLinkedin,
+  FaTwitch,
+  FaTelegram,
+  FaCheckCircle,
+  FaLink,
+  FaTimes,
+  FaSpinner,
+} from "react-icons/fa";
 import { useTheme } from "../../../context/ThemeContext";
 import API from "../../../lib/api";
 
-// Maps display info to the exact enum values the backend expects.
-// oauth: true means "Connect" does a real redirect-based login instead
-// of a manual prompt. Telegram is handled separately via its own widget.
+// oauth: true → redirect login. No oauth → username popup.
+// Telegram uses its own widget.
 const PLATFORMS = [
-  { name: "Facebook", icon: <FaFacebook className="text-blue-600" />, key: "Facebook", },
+  { name: "Facebook", icon: <FaFacebook className="text-blue-600" />, key: "Facebook" },
   { name: "Instagram", icon: <FaInstagram className="text-pink-500" />, key: "Instagram" },
-  { name: "TikTok", icon: <FaTiktok className="text-black dark:text-white" />, key: "TikTok", },
+  { name: "TikTok", icon: <FaTiktok className="text-black dark:text-white" />, key: "TikTok" },
   { name: "Twitter (X)", icon: <FaTwitter className="text-sky-500" />, key: "Twitter", oauth: true },
   { name: "YouTube", icon: <FaYoutube className="text-red-600" />, key: "YouTube", oauth: true },
   { name: "Spotify", icon: <FaSpotify className="text-green-500" />, key: "Spotify", oauth: true },
@@ -26,6 +39,10 @@ export default function LinkedAccounts() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const telegramContainerRef = useRef(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalPlatform, setModalPlatform] = useState(null);
+  const [usernameInput, setUsernameInput] = useState("");
+  const [modalError, setModalError] = useState("");
 
   const fetchLinked = async () => {
     try {
@@ -41,8 +58,6 @@ export default function LinkedAccounts() {
     fetchLinked();
   }, []);
 
-  // After an OAuth redirect back from a platform, show the result and
-  // clean the URL so a refresh doesn't repeat it.
   useEffect(() => {
     const connected = searchParams.get("connected");
     const error = searchParams.get("error");
@@ -61,9 +76,6 @@ export default function LinkedAccounts() {
   const isLinked = (key) =>
     linkedAccounts.some((acc) => acc.platform === key && acc.isActive);
 
-  // Load Telegram's login widget script into the placeholder div once we
-  // know Telegram isn't linked yet. Telegram handles its own popup UI and
-  // calls window.onTelegramAuth with the signed user data when done.
   useEffect(() => {
     if (isLinked("Telegram") || !telegramContainerRef.current) return;
 
@@ -82,7 +94,10 @@ export default function LinkedAccounts() {
 
     const script = document.createElement("script");
     script.src = "https://telegram.org/js/telegram-widget.js?22";
-    script.setAttribute("data-telegram-login", process.env.REACT_APP_TELEGRAM_BOT_USERNAME || "");
+    script.setAttribute(
+      "data-telegram-login",
+      process.env.REACT_APP_TELEGRAM_BOT_USERNAME || ""
+    );
     script.setAttribute("data-size", "large");
     script.setAttribute("data-onauth", "onTelegramAuth(user)");
     script.setAttribute("data-request-access", "write");
@@ -97,30 +112,92 @@ export default function LinkedAccounts() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkedAccounts]);
 
+  const openUsernameModal = (platform) => {
+    setModalPlatform(platform);
+    setUsernameInput("");
+    setModalError("");
+    setModalOpen(true);
+  };
+
+  const closeUsernameModal = () => {
+    if (busyKey) return;
+    setModalOpen(false);
+    setModalPlatform(null);
+    setUsernameInput("");
+    setModalError("");
+  };
+
   const handleConnect = async (platform) => {
     if (platform.oauth) {
       setBusyKey(platform.key);
       try {
-        const res = await API.get(`/platforms/oauth/${platform.key.toLowerCase()}/init`);
-        window.location.href = res.data.authUrl;
+        const res = await API.get(
+          `/platforms/oauth/${platform.key.toLowerCase()}/init`
+        );
+        const authUrl = res?.data?.authUrl;
+        if (!authUrl) {
+          throw new Error(res?.data?.message || "No authorization URL returned");
+        }
+        window.location.href = authUrl;
       } catch (err) {
         console.error("Error starting OAuth connect:", err);
-        alert("Failed to start connection. Please try again.");
+        const msg =
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to start connection. Please try again.";
+        alert(msg);
         setBusyKey(null);
       }
       return;
     }
 
-    const username = prompt(`Enter your ${platform.name} username to connect:`);
-    if (!username) return;
+    openUsernameModal(platform);
+  };
 
-    setBusyKey(platform.key);
+  const submitUsernameLink = async (e) => {
+    e?.preventDefault?.();
+    if (!modalPlatform) return;
+
+    const username = usernameInput.trim();
+    if (!username) {
+      setModalError("Please enter your username.");
+      return;
+    }
+    if (username.length < 2) {
+      setModalError("Username is too short.");
+      return;
+    }
+    if (username.length > 100) {
+      setModalError("Username is too long.");
+      return;
+    }
+
+    setModalError("");
+    setBusyKey(modalPlatform.key);
     try {
-      await API.post("/platforms/link", { platform: platform.key, username });
+      await API.post("/platforms/link", {
+        platform: modalPlatform.key,
+        username,
+      });
       await fetchLinked();
+      setModalOpen(false);
+      setModalPlatform(null);
+      setUsernameInput("");
+      setModalError("");
     } catch (err) {
       console.error("Error linking account:", err);
-      alert(err?.response?.data?.message || "Failed to link account.");
+      const status = err?.response?.status;
+      const apiMsg = err?.response?.data?.message;
+      let msg = apiMsg || "Failed to link account. Please try again.";
+      if (!apiMsg) {
+        if (status === 401) msg = "Session expired. Please log in again.";
+        else if (status === 409) msg = "This account is already linked.";
+        else if (status === 400)
+          msg = "Invalid username. Please check and try again.";
+        else if (!err?.response)
+          msg = "Network error. Check your connection and try again.";
+      }
+      setModalError(msg);
     } finally {
       setBusyKey(null);
     }
@@ -147,7 +224,8 @@ export default function LinkedAccounts() {
     >
       <h1 className="text-2xl font-bold mb-4">Linked Accounts</h1>
       <p className="text-gray-500 dark:text-gray-400 mb-8">
-        Connect your social or streaming accounts to receive matching tasks and boost your earnings.
+        Connect your social or streaming accounts to receive matching tasks and
+        boost your earnings.
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -158,7 +236,9 @@ export default function LinkedAccounts() {
             <div
               key={platform.key}
               className={`p-6 rounded-2xl border shadow-md flex flex-col items-center justify-between text-center transition-all duration-300 ${
-                theme === "dark" ? "bg-[#181818] border-gray-700" : "bg-white border-gray-200"
+                theme === "dark"
+                  ? "bg-[#181818] border-gray-700"
+                  : "bg-white border-gray-200"
               }`}
             >
               <div className="text-5xl mb-4">{platform.icon}</div>
@@ -192,6 +272,115 @@ export default function LinkedAccounts() {
           );
         })}
       </div>
+
+      {/* Username connect popup (manual platforms) */}
+      {modalOpen && modalPlatform && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+          onClick={closeUsernameModal}
+        >
+          <div
+            className={`w-full max-w-md rounded-2xl border shadow-xl p-6 ${
+              theme === "dark"
+                ? "bg-[#181818] border-gray-700 text-white"
+                : "bg-white border-gray-200 text-gray-800"
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="text-3xl">{modalPlatform.icon}</div>
+              <div>
+                <h3 className="text-lg font-bold">
+                  Connect {modalPlatform.name}
+                </h3>
+                <p
+                  className={`text-sm ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-500"
+                  }`}
+                >
+                  Enter your {modalPlatform.name} username
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={submitUsernameLink} className="space-y-4 relative">
+              {busyKey === modalPlatform.key && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-xl bg-black/40 backdrop-blur-[1px]">
+                  <FaSpinner className="text-3xl text-red-500 animate-spin mb-2" />
+                  <span className="text-sm font-medium text-white">
+                    Connecting...
+                  </span>
+                </div>
+              )}
+
+              {modalError && (
+                <div
+                  className={`text-sm p-3 rounded-lg border ${
+                    theme === "dark"
+                      ? "bg-red-900/30 text-red-300 border-red-800"
+                      : "bg-red-50 text-red-700 border-red-200"
+                  }`}
+                >
+                  {modalError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  value={usernameInput}
+                  onChange={(e) => {
+                    setUsernameInput(e.target.value);
+                    if (modalError) setModalError("");
+                  }}
+                  placeholder={`e.g. your_${modalPlatform.key.toLowerCase()}_username`}
+                  autoFocus
+                  disabled={busyKey === modalPlatform.key}
+                  className={`w-full p-3 rounded-lg border outline-none disabled:opacity-60 ${
+                    modalError
+                      ? "border-red-500 bg-gray-50 dark:bg-black text-gray-800 dark:text-gray-200"
+                      : theme === "dark"
+                      ? "bg-black border-gray-700 text-gray-200"
+                      : "bg-gray-50 border-gray-300 text-gray-800"
+                  }`}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={closeUsernameModal}
+                  disabled={!!busyKey}
+                  className={`flex-1 py-2.5 rounded-lg font-medium border transition disabled:opacity-60 ${
+                    theme === "dark"
+                      ? "border-gray-600 hover:bg-gray-800"
+                      : "border-gray-300 hover:bg-gray-100"
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!!busyKey || !usernameInput.trim()}
+                  className="flex-1 py-2.5 rounded-lg font-medium bg-red-600 hover:bg-red-700 text-white transition disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {busyKey === modalPlatform.key ? (
+                    <>
+                      <FaSpinner className="animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    "Connect"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
