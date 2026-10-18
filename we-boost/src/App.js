@@ -188,6 +188,11 @@ function App() {
             <AdminPayments />
           </AdminRoute>
         } />
+        <Route path='/admin/pricing' element={
+          <AdminRoute>
+            <AdminPricing />
+          </AdminRoute>
+        } />
         <Route path='/admin/chat' element={
           <AdminRoute>
             <AdminChat />
@@ -196,11 +201,6 @@ function App() {
         <Route path='/admin/bank-settings' element={
           <AdminRoute>
             <AdminBankSettings />
-          </AdminRoute>
-        } />
-        <Route path='/admin/pricing' element={
-          <AdminRoute>
-            <AdminPricing />
           </AdminRoute>
         } />
         <Route path='/dashboard/add-funds' element={
