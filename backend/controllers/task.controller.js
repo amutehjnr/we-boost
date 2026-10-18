@@ -3,6 +3,7 @@ const { Task, Order, User, LinkedAccount } = require('../models');
 const { Op } = require('sequelize');
 const { sequelize } = require('../config/database');
 const { sendTaskVerifiedEmail } = require('../utils/email');
+const { uploadProofImage } = require('../utils/cloudinary');
 
 // @desc    Get available tasks, grouped by order (one card per order, not
 //          one per individual task — a 100-follower order is one entry
@@ -319,6 +320,29 @@ exports.startTask = async (req, res) => {
 // @access  Private (Task User only)
 exports.submitTask = async (req, res) => {
   const transaction = await sequelize.transaction();
+  // Upload screenshot to Cloudinary when a file is provided
+let proofUrl = req.body.proofUrl || null;
+if (req.file) {
+  try {
+    const result = await uploadProofImage(req.file);
+    proofUrl = result.secure_url;
+  } catch (uploadErr) {
+    await transaction.rollback();
+    console.error('Cloudinary upload error:', uploadErr);
+    return res.status(500).json({
+      success: false,
+      message: uploadErr.message || 'Failed to upload proof image'
+    });
+  }
+}
+
+if (task.requiresProof && !proofUrl && !proofText) {
+  await transaction.rollback();
+  return res.status(400).json({
+    success: false,
+    message: 'A screenshot proof image is required for this task'
+  });
+}
   
   try {
     const taskId = req.params.id;
