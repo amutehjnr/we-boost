@@ -43,6 +43,7 @@ import Withdraw from './components/user-components/user-dashboard/Withdraw';
 import Settings from './components/user-components/user-dashboard/Settings';
 import API from './lib/api';
 import AdminBankSettings from './components/admin/AdminBankSettings';
+import AdminPricing from './components/admin/AdminPricing';
 
 function App() {
   const navigate = useNavigate();
@@ -195,6 +196,11 @@ function App() {
         <Route path='/admin/bank-settings' element={
           <AdminRoute>
             <AdminBankSettings />
+          </AdminRoute>
+        } />
+        <Route path='/admin/pricing' element={
+          <AdminRoute>
+            <AdminPricing />
           </AdminRoute>
         } />
         <Route path='/dashboard/add-funds' element={
