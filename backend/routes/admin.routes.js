@@ -250,4 +250,42 @@ router.post('/payments/:id/approve', paymentController.approveManualPayment);
 // Reject pending manual bank transfer deposit
 router.post('/payments/:id/reject', paymentController.rejectManualPayment);
 
+// ---- Pricing settings (client pays / task doer earns / platform reserve) ----
+const { getPricing, savePricing } = require('../utils/pricing');
+
+router.get('/settings/pricing', async (req, res) => {
+  try {
+    const pricing = await getPricing();
+    res.status(200).json({ success: true, data: pricing });
+  } catch (error) {
+    console.error('Get pricing settings error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.put('/settings/pricing', async (req, res) => {
+  try {
+    const {
+      serviceRates,
+      serviceDescriptions,
+      taskRates,
+      platformReservePercent,
+    } = req.body;
+    const pricing = await savePricing({
+      serviceRates,
+      serviceDescriptions,
+      taskRates,
+      platformReservePercent,
+    });
+    res.status(200).json({
+      success: true,
+      message: 'Pricing updated successfully',
+      data: pricing,
+    });
+  } catch (error) {
+    console.error('Update pricing settings error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router;

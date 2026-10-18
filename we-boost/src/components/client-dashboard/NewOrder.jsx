@@ -1,5 +1,5 @@
 // src/pages/NewOrder.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DashboardLayout from "./DashboardLayout";
 import { FaShoppingCart, FaInfoCircle } from "react-icons/fa";
 import { useTheme } from "../../context/ThemeContext";
@@ -19,22 +19,44 @@ export default function NewOrder({ isClient, userModeToggle }) {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
-
-  const serviceRates = {
+  const [serviceRates, setServiceRates] = useState({
     Basic: 10000,
     Moderate: 25000,
     High: 50000,
-  };
+  });
+  const [serviceDescriptions, setServiceDescriptions] = useState({
+    Basic:
+      "Gradual delivery over a few days, from real-looking but lower-activity accounts. Our most affordable tier.",
+    Moderate:
+      "Faster delivery with a balanced mix of account quality — our most popular choice.",
+    High:
+      "Fastest delivery from premium, high-activity accounts for maximum credibility and retention.",
+  });
 
-  const SERVICE_DESCRIPTIONS = {
-    Basic: "Gradual delivery over a few days, from real-looking but lower-activity accounts. Our most affordable tier.",
-    Moderate: "Faster delivery with a balanced mix of account quality — our most popular choice.",
-    High: "Fastest delivery from premium, high-activity accounts for maximum credibility and retention.",
-  };
+  useEffect(() => {
+    API.get("/orders/pricing")
+      .then((res) => {
+        const rates = res.data?.data?.serviceRates;
+        const descs = res.data?.data?.serviceDescriptions;
+        if (rates && Object.keys(rates).length) {
+          setServiceRates(rates);
+          const first = Object.keys(rates)[0];
+          setFormData((prev) =>
+            rates[prev.service] !== undefined
+              ? prev
+              : { ...prev, service: first }
+          );
+        }
+        if (descs) setServiceDescriptions(descs);
+      })
+      .catch((err) => console.error("Failed to load pricing:", err));
+  }, []);
+
+  const packageOptions = Object.keys(serviceRates);
 
   // Ensure quantity is converted safely
   const qty = Number(formData.quantity);
-  const rate = serviceRates[formData.service];
+  const rate = parseFloat(serviceRates[formData.service]) || 0;
 
   const total = qty > 0 ? (qty / 1000) * rate : 0;
 
@@ -79,7 +101,7 @@ export default function NewOrder({ isClient, userModeToggle }) {
       setFormData({
         platform: "Facebook",
         category: "Followers",
-        service: "Basic",
+        service: Object.keys(serviceRates)[0] || "Basic",
         username: "",
         quantity: "",
       });
@@ -175,13 +197,13 @@ export default function NewOrder({ isClient, userModeToggle }) {
               <SelectField
                 label="Service"
                 value={formData.service}
-                options={["Basic", "Moderate", "High"]}
+                options={packageOptions.length ? packageOptions : ["Basic"]}
                 onChange={(val) => setFormData({ ...formData, service: val })}
                 theme={theme}
               />
 
               <p className={`text-sm -mt-3 mb-1 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                {SERVICE_DESCRIPTIONS[formData.service]}
+                {serviceDescriptions[formData.service] || ""}
               </p>
 
               <InfoBox

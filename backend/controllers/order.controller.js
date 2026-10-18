@@ -2,6 +2,7 @@
 const { Order, Task, User, Payment } = require('../models');
 const { Op } = require('sequelize');
 const { sequelize } = require('../config/database');
+const { getPricing } = require('../utils/pricing');
 
 // Service rates configuration
 const SERVICE_RATES = {
@@ -317,6 +318,29 @@ exports.getOrder = async (req, res) => {
       success: false,
       message: 'Error fetching order',
       error: error.message
+    });
+  }
+};
+
+// @desc    Get service packages + rates for order form
+// @route   GET /api/orders/pricing
+// @access  Private
+exports.getServicePricing = async (req, res) => {
+  try {
+    const pricing = await getPricing();
+    res.status(200).json({
+      success: true,
+      data: {
+        serviceRates: pricing.serviceRates,
+        serviceDescriptions: pricing.serviceDescriptions,
+      },
+    });
+  } catch (error) {
+    console.error('Get service pricing error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching pricing',
+      error: error.message,
     });
   }
 };

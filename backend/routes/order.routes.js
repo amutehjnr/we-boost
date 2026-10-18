@@ -3,6 +3,7 @@ const router = express.Router();
 const orderController = require('../controllers/order.controller');
 const { verifyJWT, isClient } = require('../middleware/auth');
 
+router.get('/pricing', verifyJWT, orderController.getServicePricing);
 router.post('/', verifyJWT, isClient, orderController.createOrder);
 router.get('/', verifyJWT, orderController.getMyOrders);
 router.get('/stats', verifyJWT, orderController.getOrderStats);

@@ -5,7 +5,9 @@ const { sequelize } = require('../config/database');
 const { sendTaskVerifiedEmail } = require('../utils/email');
 const { uploadProofImage } = require('../utils/cloudinary');
 
-// @desc    Get available tasks, grouped by order
+// @desc    Get available tasks, grouped by order (one card per order, not
+//          one per individual task — a 100-follower order is one entry
+//          with a remaining-spots count, not 100 near-identical rows).
 // @route   GET /api/tasks/available
 // @access  Private (Task User only)
 exports.getAvailableTasks = async (req, res) => {
@@ -14,18 +16,22 @@ exports.getAvailableTasks = async (req, res) => {
     const offset = (page - 1) * limit;
     const userId = req.user.id;
 
+    // Get user's linked accounts to filter tasks
     const linkedAccounts = await LinkedAccount.findAll({
       where: { userId, isActive: true },
       attributes: ['platform']
     });
-    const linkedPlatforms = linkedAccounts.map((acc) => acc.platform);
 
+    const linkedPlatforms = linkedAccounts.map(acc => acc.platform);
+
+    // Orders this user has already claimed a task on — exclude them
+    // entirely, since they can't claim a second slot on the same order.
     const ownTaskOrderIds = await Task.findAll({
       where: { userId },
       attributes: ['orderId'],
       group: ['orderId']
     });
-    const excludedOrderIds = ownTaskOrderIds.map((t) => t.orderId);
+    const excludedOrderIds = ownTaskOrderIds.map(t => t.orderId);
 
     const whereClause = {
       status: 'Available',
@@ -42,6 +48,10 @@ exports.getAvailableTasks = async (req, res) => {
       whereClause.orderId = { [Op.notIn]: excludedOrderIds };
     }
 
+    // Group identical open tasks by their order, counting remaining spots.
+    // No `include` here — joining Order's columns without adding them to
+    // GROUP BY violates MySQL's ONLY_FULL_GROUP_BY (on by default), and
+    // the frontend doesn't use that data in this grouped view anyway.
     const groups = await Task.findAll({
       where: whereClause,
       attributes: [
@@ -53,12 +63,18 @@ exports.getAvailableTasks = async (req, res) => {
         [sequelize.fn('COUNT', sequelize.col('id')), 'availableCount']
       ],
       group: ['orderId', 'platform', 'taskType', 'targetUrl', 'reward'],
-      order: [[sequelize.literal('availableCount'), 'DESC']],
+      order: [[sequelize.literal('MAX(priority)'), 'DESC'], [sequelize.literal('MAX(created_at)'), 'DESC']],
       limit: parseInt(limit),
-      offset
+      offset,
+      subQuery: false
     });
 
-    const totalGroups = groups.length;
+    // Total count of distinct order-groups, for pagination
+    const totalGroups = await Task.count({
+      where: whereClause,
+      distinct: true,
+      col: 'orderId'
+    });
 
     res.status(200).json({
       success: true,
@@ -66,7 +82,7 @@ exports.getAvailableTasks = async (req, res) => {
       pagination: {
         total: totalGroups,
         page: parseInt(page),
-        pages: Math.ceil(totalGroups / limit) || 1
+        pages: Math.ceil(totalGroups / limit)
       }
     });
   } catch (error) {
@@ -79,7 +95,9 @@ exports.getAvailableTasks = async (req, res) => {
   }
 };
 
-// @desc    Claim one open task slot from a specific order
+// @desc    Claim one open task slot from a specific order (used from the
+//          grouped available-tasks view). Row-locks the pick so two
+//          people clicking at the same moment can't grab the same task.
 // @route   POST /api/tasks/claim/:orderId
 // @access  Private (Task User only)
 exports.claimTaskFromOrder = async (req, res) => {
@@ -89,6 +107,8 @@ exports.claimTaskFromOrder = async (req, res) => {
     const { orderId } = req.params;
     const userId = req.user.id;
 
+    // Lock one available, unclaimed row for this order so concurrent
+    // claims can't both land on the same task.
     const task = await Task.findOne({
       where: { orderId, status: 'Available', userId: null },
       lock: transaction.LOCK.UPDATE,
@@ -137,15 +157,12 @@ exports.claimTaskFromOrder = async (req, res) => {
       });
     }
 
-    await task.update(
-      {
-        userId,
-        status: 'Assigned',
-        assignedAt: new Date(),
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
-      },
-      { transaction }
-    );
+    await task.update({
+      userId,
+      status: 'Assigned',
+      assignedAt: new Date(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+    }, { transaction });
 
     await transaction.commit();
 
@@ -165,9 +182,9 @@ exports.claimTaskFromOrder = async (req, res) => {
   }
 };
 
-// @desc    Get my tasks
+// @desc    Get my tasks (assigned/completed)
 // @route   GET /api/tasks/my-tasks
-// @access  Private
+// @access  Private (Task User only)
 exports.getMyTasks = async (req, res) => {
   try {
     const { page = 1, limit = 20, status, platform } = req.query;
@@ -215,7 +232,7 @@ exports.getMyTasks = async (req, res) => {
 // @access  Private (Task User only)
 exports.startTask = async (req, res) => {
   const transaction = await sequelize.transaction();
-
+  
   try {
     const taskId = req.params.id;
     const userId = req.user.id;
@@ -238,6 +255,7 @@ exports.startTask = async (req, res) => {
       });
     }
 
+    // Check if user has linked the required platform
     const linkedAccount = await LinkedAccount.findOne({
       where: {
         userId,
@@ -255,6 +273,9 @@ exports.startTask = async (req, res) => {
       });
     }
 
+    // Prevent one person from claiming multiple tasks on the same order.
+    // A "100 followers" order means 100 distinct real people, not one
+    // person completing the action 100 times.
     const alreadyOnOrder = await Task.findOne({
       where: { orderId: task.orderId, userId },
       transaction
@@ -268,15 +289,13 @@ exports.startTask = async (req, res) => {
       });
     }
 
-    await task.update(
-      {
-        userId,
-        status: 'Assigned',
-        assignedAt: new Date(),
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
-      },
-      { transaction }
-    );
+    // Assign task to user
+    await task.update({
+      userId,
+      status: 'Assigned',
+      assignedAt: new Date(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+    }, { transaction });
 
     await transaction.commit();
 
@@ -307,6 +326,7 @@ exports.submitTask = async (req, res) => {
     const userId = req.user.id;
     const proofText = req.body?.proofText || null;
 
+    // 1) Load the task first — never reference `task` before this
     const task = await Task.findOne({
       where: { id: taskId, userId },
       transaction
@@ -328,6 +348,7 @@ exports.submitTask = async (req, res) => {
       });
     }
 
+    // 2) Upload screenshot to Cloudinary (optional if proofText only)
     let proofUrl = null;
     if (req.file && req.file.buffer) {
       try {
@@ -370,10 +391,8 @@ exports.submitTask = async (req, res) => {
       if (user) {
         await user.update(
           {
-            walletBalance:
-              parseFloat(user.walletBalance) + parseFloat(task.reward),
-            totalEarnings:
-              parseFloat(user.totalEarnings) + parseFloat(task.reward),
+            walletBalance: parseFloat(user.walletBalance) + parseFloat(task.reward),
+            totalEarnings: parseFloat(user.totalEarnings) + parseFloat(task.reward),
             tasksCompleted: (user.tasksCompleted || 0) + 1
           },
           { transaction }
@@ -393,6 +412,7 @@ exports.submitTask = async (req, res) => {
 
     await transaction.commit();
 
+    // Reload without transaction for response
     const updated = await Task.findByPk(taskId);
 
     return res.status(200).json({
@@ -405,7 +425,9 @@ exports.submitTask = async (req, res) => {
   } catch (error) {
     try {
       await transaction.rollback();
-    } catch (_) {}
+    } catch (_) {
+      /* already rolled back */
+    }
     console.error('Submit task error:', error);
     return res.status(500).json({
       success: false,
@@ -469,7 +491,7 @@ exports.getPendingVerificationTasks = async (req, res) => {
 // @access  Private (Admin/Client)
 exports.verifyTask = async (req, res) => {
   const transaction = await sequelize.transaction();
-
+  
   try {
     const taskId = req.params.id;
     const { approved, verificationNotes } = req.body;
@@ -484,6 +506,15 @@ exports.verifyTask = async (req, res) => {
       });
     }
 
+    // Check if user has permission to verify
+    if (req.user.role !== 'admin' && task.clientId !== req.user.id) {
+      await transaction.rollback();
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to verify this task'
+      });
+    }
+
     if (task.status !== 'Pending Verification') {
       await transaction.rollback();
       return res.status(400).json({
@@ -492,71 +523,60 @@ exports.verifyTask = async (req, res) => {
       });
     }
 
+    // Capture the task-doer before the reject branch clears task.userId
+    const taskDoer = await User.findByPk(task.userId, { transaction });
+
     if (approved) {
-      await task.update(
-        {
-          status: 'Completed',
-          verificationStatus: 'Verified',
-          verifiedAt: new Date(),
-          verificationNotes: verificationNotes || null,
-          completedAt: new Date()
-        },
-        { transaction }
-      );
-
+      // Approve task and credit user
       const user = await User.findByPk(task.userId, { transaction });
-      if (user) {
-        await user.update(
-          {
-            walletBalance:
-              parseFloat(user.walletBalance) + parseFloat(task.reward),
-            totalEarnings:
-              parseFloat(user.totalEarnings) + parseFloat(task.reward),
-            tasksCompleted: (user.tasksCompleted || 0) + 1
-          },
-          { transaction }
-        );
+      await user.update({
+        walletBalance: parseFloat(user.walletBalance) + parseFloat(task.reward),
+        totalEarnings: parseFloat(user.totalEarnings) + parseFloat(task.reward),
+        tasksCompleted: user.tasksCompleted + 1
+      }, { transaction });
 
-        sendTaskVerifiedEmail(user.email, user.fullName, {
-          approved: true,
-          reward: task.reward,
-          platform: task.platform
-        });
-      }
+      // Update task
+      await task.update({
+        status: 'Completed',
+        verificationStatus: 'Verified',
+        verificationNotes,
+        completedAt: new Date()
+      }, { transaction });
 
+      // Update order progress
       const order = await Order.findByPk(task.orderId, { transaction });
       if (order) {
-        await order.update(
-          { quantityDelivered: (order.quantityDelivered || 0) + 1 },
-          { transaction }
-        );
+        await order.update({
+          quantityDelivered: order.quantityDelivered + 1
+        }, { transaction });
       }
     } else {
-      await task.update(
-        {
-          status: 'Rejected',
-          verificationStatus: 'Rejected',
-          verifiedAt: new Date(),
-          verificationNotes: verificationNotes || null
-        },
-        { transaction }
-      );
-
-      const user = await User.findByPk(task.userId, { transaction });
-      if (user) {
-        sendTaskVerifiedEmail(user.email, user.fullName, {
-          approved: false,
-          reason: verificationNotes,
-          platform: task.platform
-        });
-      }
+      // Reject task
+      await task.update({
+        status: 'Rejected',
+        verificationStatus: 'Failed',
+        verificationNotes,
+        rejectionReason: verificationNotes,
+        userId: null, // Release task back to pool
+        assignedAt: null
+      }, { transaction });
     }
 
     await transaction.commit();
 
+    if (taskDoer) {
+      sendTaskVerifiedEmail(taskDoer.email, taskDoer.fullName, {
+        approved,
+        reward: task.reward,
+        platform: task.platform,
+        taskType: task.taskType,
+        verificationNotes
+      });
+    }
+
     res.status(200).json({
       success: true,
-      message: approved ? 'Task approved and reward credited' : 'Task rejected',
+      message: approved ? 'Task approved successfully' : 'Task rejected',
       data: task
     });
   } catch (error) {
@@ -582,29 +602,9 @@ exports.getTaskStats = async (req, res) => {
       attributes: [
         [sequelize.fn('COUNT', sequelize.col('id')), 'totalTasks'],
         [sequelize.fn('SUM', sequelize.col('reward')), 'totalEarnings'],
-        [
-          sequelize.fn(
-            'COUNT',
-            sequelize.literal("CASE WHEN status = 'Completed' THEN 1 END")
-          ),
-          'completedTasks'
-        ],
-        [
-          sequelize.fn(
-            'COUNT',
-            sequelize.literal(
-              "CASE WHEN status = 'Pending Verification' THEN 1 END"
-            )
-          ),
-          'pendingTasks'
-        ],
-        [
-          sequelize.fn(
-            'COUNT',
-            sequelize.literal("CASE WHEN status = 'In Progress' THEN 1 END")
-          ),
-          'inProgressTasks'
-        ]
+        [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'Completed' THEN 1 END")), 'completedTasks'],
+        [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'Pending Verification' THEN 1 END")), 'pendingTasks'],
+        [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'In Progress' THEN 1 END")), 'inProgressTasks']
       ],
       raw: true
     });
@@ -628,7 +628,7 @@ exports.getTaskStats = async (req, res) => {
 // @access  Private
 exports.cancelTask = async (req, res) => {
   const transaction = await sequelize.transaction();
-
+  
   try {
     const task = await Task.findOne({
       where: {
@@ -654,16 +654,14 @@ exports.cancelTask = async (req, res) => {
       });
     }
 
-    await task.update(
-      {
-        status: 'Available',
-        userId: null,
-        assignedAt: null,
-        startedAt: null,
-        expiresAt: null
-      },
-      { transaction }
-    );
+    // Release task back to available pool
+    await task.update({
+      status: 'Available',
+      userId: null,
+      assignedAt: null,
+      startedAt: null,
+      expiresAt: null
+    }, { transaction });
 
     await transaction.commit();
 
