@@ -328,11 +328,34 @@ exports.getOrder = async (req, res) => {
 exports.getServicePricing = async (req, res) => {
   try {
     const pricing = await getPricing();
+    const { PlatformSetting } = require('../models');
+
+    let platformsMeta = null;
+    let servicesCatalog = pricing.serviceCatalog || null;
+    try {
+      const platRow = await PlatformSetting.findOne({ where: { key: 'platforms' } });
+      if (platRow?.value) platformsMeta = platRow.value;
+      const svcRow = await PlatformSetting.findOne({ where: { key: 'services' } });
+      if (svcRow?.value?.items) servicesCatalog = svcRow.value.items;
+    } catch (_) {}
+
+    if (!servicesCatalog || !servicesCatalog.length) {
+      servicesCatalog = Object.entries(pricing.serviceRates || {}).map(([title, rate]) => ({
+        title,
+        unitPricePer1000: rate,
+        active: true,
+      }));
+    }
+
     res.status(200).json({
       success: true,
       data: {
         serviceRates: pricing.serviceRates,
         serviceDescriptions: pricing.serviceDescriptions,
+        serviceCatalog: servicesCatalog,
+        platforms: platformsMeta?.platforms || null,
+        categories: platformsMeta?.categories || null,
+        platformCategories: platformsMeta?.platformCategories || null,
       },
     });
   } catch (error) {
