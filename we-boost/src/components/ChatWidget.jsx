@@ -67,7 +67,7 @@ export default function ChatWidget({ user }) {
 
   // Open the widget: resume an existing conversation, or ask a guest for
   // their name/email first.
-  const handleOpen = () => {
+  const handleOpen = useCallback(() => {
     setOpen(true);
     if (conversation) return;
 
@@ -76,7 +76,14 @@ export default function ChatWidget({ user }) {
       return;
     }
     startConversation();
-  };
+  }, [conversation, user, guestToken, savedConversationId, startConversation]);
+
+  // Allow other pages (e.g. Support) to open the live chat
+  useEffect(() => {
+    const onExternalOpen = () => handleOpen();
+    window.addEventListener("weboost-open-chat", onExternalOpen);
+    return () => window.removeEventListener("weboost-open-chat", onExternalOpen);
+  }, [handleOpen]);
 
   const handleGuestFormSubmit = (e) => {
     e.preventDefault();

@@ -66,7 +66,7 @@ export default function Support({ handleLogout, user, isClient, userModeToggle }
                         {
                             icon: <FaPhoneAlt className="text-red-600 text-3xl mb-3" />,
                             title: "Call Us",
-                            info: "+234 123 456 7890",
+                            info: "+234 703 579 0806",
                         },
                         {
                             icon: <FaComments className="text-red-600 text-3xl mb-3" />,
@@ -204,8 +204,12 @@ export default function Support({ handleLogout, user, isClient, userModeToggle }
                     <p className="text-gray-500 mb-6">
                         Chat live with a WeBoost support agent for faster assistance.
                     </p>
-                    <button className="bg-black hover:bg-gray-800 text-white font-semibold px-8 py-3 rounded-lg transition duration-300 shadow-md">
-                        Start Live Chat
+                    <button
+                       type="button"
+                       onClick={() => window.dispatchEvent(new Event("weboost-open-chat"))}
+                       className="bg-black hover:bg-gray-800 text-white font-semibold px-8 py-3 rounded-lg transition duration-300 shadow-md"
+                    >
+                       Start Live Chat
                     </button>
                 </motion.div>
             </div>
